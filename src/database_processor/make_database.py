@@ -1,10 +1,12 @@
 import json
 import re
+import os
 
 fasta_path = "datasets/Pfam-A.fasta"
 orgprot_path = "datasets/uniref50.fasta"
 temp_path = "datasets/200617_TEMPURA.json"
 
+prot_temp_path = "datasets/prot_temp.json"
 output_path = "datasets/processed_dataset.json"
 
 
@@ -20,23 +22,19 @@ def get_uniref(tempura: dict, save_sequence=False):
                 if counter % 100000 == 0:
                     print(f"Processed {counter / 1000000}M uniref...")
 
-                if counter > 2000:
-                    return genes
+                # if counter > 2000000:
+                #     return genes
 
                 pattern = r"UniRef50_(\S+).*?Tax=(.*?) TaxID=(\d+)"
                 match = re.search(pattern, line)
 
                 if match:
                     last_prot_id = match.group(1)  # UPI002E2621C6
-                    genes[last_prot_id] = {}
-                    # genes[last_prot_id]["org"] = match.group(2)  # Corticium candelabrum
-                    # genes[last_prot_id]["org_id"] = int(match.group(3))  # 121492
-                    if last_prot_id in tempura:
-                        genes[last_prot_id]["temp"] = tempura[int(last_prot_id)]
+                    if int(match.group(3)) in tempura:
+                        genes[last_prot_id] = {}
+                        genes[last_prot_id]["temp"] = tempura[int(match.group(3))]
 
                 else:  # Probably not known organism
-                    # print(f"Error while parsing uniref position: {counter}")
-                    # print(line)
                     last_prot_id = None
 
             elif last_prot_id and save_sequence:
@@ -93,12 +91,18 @@ def get_Pfam(prot_temp: dict, split_lim: int):
 
 """
 TODO
-vyresit nekompatibilni jmena organismu v org-prot a temp-org
 """
 
 
 def main():
-    org = get_uniref(get_temp())
+    if os.path.exists(prot_temp_path):
+        with open(prot_temp_path, "r") as f:
+            org = json.load(f)
+    else:
+        org = get_uniref(get_temp())
+        with open(prot_temp_path, "w") as f:
+            json.dump(org, f, indent=4)
+
     fami = get_Pfam(org, 1000000)
     with open("test.json", "w") as output:
         json.dump(fami, output, indent=4)
