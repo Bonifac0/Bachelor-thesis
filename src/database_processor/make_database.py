@@ -8,7 +8,7 @@ temp_path = "datasets/200617_TEMPURA.json"
 output_path = "datasets/processed_dataset.json"
 
 
-def get_uniref(save_sequence=False):
+def get_uniref(tempura: dict, save_sequence=False):
     # >UniRef50_UPI002E2621C6 uncharacterized protein LOC134193701 n=1 Tax=Corticium candelabrum TaxID=121492 RepID=UPI002E2621C6
     with open(orgprot_path, "r") as orgprot_file:
         genes: dict = {}
@@ -20,29 +20,30 @@ def get_uniref(save_sequence=False):
                 if counter % 100000 == 0:
                     print(f"Processed {counter / 1000000}M uniref...")
 
-                if counter > 2000000:
+                if counter > 2000:
                     return genes
 
                 pattern = r"UniRef50_(\S+).*?Tax=(.*?) TaxID=(\d+)"
                 match = re.search(pattern, line)
 
                 if match:
-                    last_id = match.group(1)  # UPI002E2621C6
-                    genes[last_id] = {}
-                    genes[last_id]["org"] = match.group(2)  # Corticium candelabrum
-                    genes[last_id]["org_id"] = int(match.group(3))  # 121492
+                    last_prot_id = match.group(1)  # UPI002E2621C6
+                    genes[last_prot_id] = {}
+                    # genes[last_prot_id]["org"] = match.group(2)  # Corticium candelabrum
+                    # genes[last_prot_id]["org_id"] = int(match.group(3))  # 121492
+                    if last_prot_id in tempura:
+                        genes[last_prot_id]["temp"] = tempura[int(last_prot_id)]
 
-                else:
-                    # Probably not known organism
-                    print(f"Error while parsing uniref position: {counter}")
-                    print(line)
-                    last_id = None
+                else:  # Probably not known organism
+                    # print(f"Error while parsing uniref position: {counter}")
+                    # print(line)
+                    last_prot_id = None
 
-            elif last_id and save_sequence:
-                if "sequence" not in genes[last_id]:
-                    genes[last_id]["sequence"] = line.strip()
+            elif last_prot_id and save_sequence:
+                if "sequence" not in genes[last_prot_id]:
+                    genes[last_prot_id]["sequence"] = line.strip()
                 else:
-                    genes[last_id]["sequence"] += line.strip()
+                    genes[last_prot_id]["sequence"] += line.strip()
         return genes
 
 
@@ -54,7 +55,7 @@ def get_temp():
         return orgs
 
 
-def get_Pfam(prot_temp: dict):
+def get_Pfam(prot_temp: dict, split_lim: int):
     # >A0A671U9Z5_SPAAU/41-288 A0A671U9Z5.1 PF00001.26;7tm_1;
     output: dict = {}
     counter = 0
@@ -72,10 +73,14 @@ def get_Pfam(prot_temp: dict):
                 fami_id = data[2].split(".")[0]
                 prot_id = data[1].split(".")[0]
                 if fami_id not in output:
+                    if counter > split_lim:
+                        return output
                     output[fami_id] = {}
 
                 if prot_id in prot_temp:
                     output[fami_id][prot_id] = prot_temp[prot_id]
+                else:
+                    output[fami_id][prot_id] = {"temp": "uniref missing"}
 
             else:
                 if prot_id in prot_temp:
@@ -93,22 +98,8 @@ vyresit nekompatibilni jmena organismu v org-prot a temp-org
 
 
 def main():
-    temps = get_temp()
-    org = get_uniref()
-
-    # make match prot-temp
-    succ = 0
-    num = 0
-    for i in org:
-        num += 1
-        tmp = "NA"
-        if org[i]["org_id"] in temps:
-            succ += 1
-            tmp = temps[org[i]["org_id"]]
-        org[i]["temp"] = tmp
-    print(num)
-    print(succ)
-    fami = get_Pfam(org)
+    org = get_uniref(get_temp())
+    fami = get_Pfam(org, 1000000)
     with open("test.json", "w") as output:
         json.dump(fami, output, indent=4)
 
