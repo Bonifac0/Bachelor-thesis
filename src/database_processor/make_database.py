@@ -64,21 +64,16 @@ def get_Pfam(prot_temp: dict, split_lim: int):
                 if counter % 100000 == 0:
                     print(f"Processed {counter / 1000000}M Pfam...")
 
-                if counter > 2000000:
-                    return output
-
                 data = line.split()
                 fami_id = data[2].split(".")[0]
                 prot_id = data[1].split(".")[0]
                 if fami_id not in output:
-                    if counter > split_lim:
-                        return output
+                    # if counter > split_lim:
+                    #     return output
                     output[fami_id] = {}
 
                 if prot_id in prot_temp:
                     output[fami_id][prot_id] = prot_temp[prot_id]
-                else:
-                    output[fami_id][prot_id] = {"temp": "uniref missing"}
 
             else:
                 if prot_id in prot_temp:
@@ -103,8 +98,13 @@ def main():
         with open(prot_temp_path, "w") as f:
             json.dump(org, f, indent=4)
 
-    fami = get_Pfam(org, 1000000)
-    with open("test.json", "w") as output:
+    fami = get_Pfam(org, 1)
+
+    print("Removing keys with no value")
+    fami = {k: v for k, v in fami.items() if v}
+
+    print("Saving to file")
+    with open(output_path, "w") as output:
         json.dump(fami, output, indent=4)
 
 
