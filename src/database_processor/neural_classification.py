@@ -2,6 +2,8 @@ import esm
 import torch
 import typing
 from collections import OrderedDict
+import numpy as np
+import json
 
 MODEL_8M = "esm2_t6_8M_UR50D"
 MODEL_35M = "esm2_t12_35M_UR50D"
@@ -11,6 +13,8 @@ MODEL_3B = "esm2_t36_3B_UR50D"
 MODEL_15B = "esm2_t48_15B_UR50D"
 TORCH_CUDA = "cuda"
 TORCH_CPU = "cpu"
+
+LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 
 
 def load_pretrained_model(model_name: str, torch_device: str):
@@ -159,10 +163,21 @@ class ModelClassifier(torch.nn.Module):
         return [out_cat, out_bin, out_reg]
 
 
-if __name__ == "__main__":
+def tensor_to_class_label(tensor):
+    """
+    Converts a tensor output (logits or probabilities) to class labels.
+    Input shape: (batch_size, num_classes)
+    Returns: list of class strings
+    """
+    arr = np.array(tensor)
+    idxs = np.argmax(arr, axis=-1)
+    return [LABELS[i] for i in idxs]
+
+
+def classify(
+    inp: typing.List[typing.Tuple[str, str]],
+) -> typing.List[typing.Tuple[str, str]]:
     model_path = "resources/model-664.pt"  # replace with your model path
-    SEQUENCE = "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG"
-    INPUT = [("protein1", SEQUENCE)]
 
     DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
 
@@ -189,8 +204,33 @@ if __name__ == "__main__":
     model.eval()
 
     print("pass through the model...")
-    _, _, inputs = batch_converter(INPUT)
+    _, _, inputs = batch_converter(inp)
     inputs = inputs.to(DEVICE)
     with torch.no_grad():
         output = model(inputs)[0]
-    print(output)
+    # print(output)
+    return output
+
+
+if __name__ == "__main__":
+    # JSON_PATH = "datasets/processed_dataset.json"
+    JSON_PATH = "test.json"
+
+    with open(JSON_PATH, "r") as f:
+        data = json.load(f)
+
+    protein_list = []
+    protein_keys = []
+    for fam, entries in data.items():
+        for prot_id, entry in entries.items():
+            if "pfam_sec" in entry:
+                protein_list.append((prot_id, entry["pfam_sec"]))
+                protein_keys.append((fam, prot_id))
+
+    preds = tensor_to_class_label(classify(protein_list))
+
+    for (fam, prot_id), pred in zip(protein_keys, preds):
+        data[fam][prot_id]["pred"] = pred
+
+    with open(JSON_PATH, "w") as f:
+        json.dump(data, f, indent=4)

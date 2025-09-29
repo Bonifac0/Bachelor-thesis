@@ -5,7 +5,9 @@ import numpy as np
 
 matplotlib.use("Agg")
 
-dataset = "datasets/processed_dataset.json"
+# dataset = "datasets/processed_dataset.json"
+dataset = "test.json"
+
 
 # {
 #     "PF10417": {
@@ -37,9 +39,9 @@ with open(dataset, "r") as f:
     data = json.load(f)
     for fam in data.values():
         for entry in fam.values():
-            if "temp" in entry and "pred_temp" in entry:
+            if "temp" in entry and "pred" in entry:
                 true_class = classify_temp(entry["temp"])
-                pred_class = classify_temp(entry["pred_temp"])
+                pred_class = entry["pred"]
                 i = label_to_idx[true_class]
                 j = label_to_idx[pred_class]
                 conf_matrix[i, j] += 1
