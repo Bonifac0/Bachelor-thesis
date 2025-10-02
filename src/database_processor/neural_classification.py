@@ -175,7 +175,7 @@ def tensor_to_class_label(tensor):
     Input shape: (batch_size, num_classes)
     Returns: list of class strings
     """
-    arr = np.array(tensor)
+    arr = np.array(tensor, dtype=float)
     idxs = np.argmax(arr, axis=-1)
     return [LABELS[i] for i in idxs]
 
