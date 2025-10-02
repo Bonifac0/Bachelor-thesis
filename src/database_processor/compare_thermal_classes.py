@@ -7,7 +7,7 @@ import os
 matplotlib.use("Agg")
 
 # dataset = "datasets/processed_dataset.json"
-DATASET_FILE = "test2.json"
+DATASET_FILE = "test_combined.json"
 
 if not os.path.isfile(DATASET_FILE):
     raise FileNotFoundError(f"Dataset file '{DATASET_FILE}' does not exist.")
