@@ -2,11 +2,15 @@ import matplotlib
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 matplotlib.use("Agg")
 
 # dataset = "datasets/processed_dataset.json"
-dataset = "test.json"
+DATASET_FILE = "test.json"
+
+if not os.path.isfile(DATASET_FILE):
+    raise FileNotFoundError(f"Dataset file '{DATASET_FILE}' does not exist.")
 
 
 # {
@@ -35,7 +39,7 @@ label_to_idx = {label: i for i, label in enumerate(labels)}
 conf_matrix = np.zeros((4, 4), dtype=int)
 
 # Load dataset and fill confusion matrix
-with open(dataset, "r") as f:
+with open(DATASET_FILE, "r") as f:
     data = json.load(f)
     for fam in data.values():
         for entry in fam.values():

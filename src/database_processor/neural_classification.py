@@ -4,6 +4,7 @@ import typing
 from collections import OrderedDict
 import numpy as np
 import json
+import os
 
 MODEL_8M = "esm2_t6_8M_UR50D"
 MODEL_35M = "esm2_t12_35M_UR50D"
@@ -16,6 +17,11 @@ TORCH_CPU = "cpu"
 
 LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 
+# JSON_PATH = "datasets/processed_dataset.json"
+JSON_PATH = "test.json"
+
+if not os.path.isfile(JSON_PATH):
+    raise FileNotFoundError(f"Dataset file '{JSON_PATH}' does not exist.")
 
 def load_pretrained_model(model_name: str, torch_device: str):
     # model, alphabet = torch.hub.load("facebookresearch/esm:main", model_name)
@@ -213,9 +219,6 @@ def classify(
 
 
 if __name__ == "__main__":
-    # JSON_PATH = "datasets/processed_dataset.json"
-    JSON_PATH = "test.json"
-
     with open(JSON_PATH, "r") as f:
         data = json.load(f)
 

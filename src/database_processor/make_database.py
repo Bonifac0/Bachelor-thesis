@@ -2,9 +2,16 @@ import json
 import re
 import os
 
-fasta_path = "datasets/Pfam-A.fasta"
-orgprot_path = "datasets/uniref50.fasta"
-temp_path = "datasets/200617_TEMPURA.json"
+FASTA_PATH = "datasets/Pfam-A.fasta"
+UNIREF_PATH = "datasets/uniref50.fasta"
+TEMP_PATH = "datasets/200617_TEMPURA.json"
+
+if not os.path.isfile(FASTA_PATH):
+    raise FileNotFoundError(f"Dataset file '{FASTA_PATH}' does not exist.")
+if not os.path.isfile(UNIREF_PATH):
+    raise FileNotFoundError(f"Dataset file '{UNIREF_PATH}' does not exist.")
+if not os.path.isfile(TEMP_PATH):
+    raise FileNotFoundError(f"Dataset file '{TEMP_PATH}' does not exist.")
 
 prot_temp_path = "datasets/prot_temp.json"
 output_path = "datasets/processed_dataset.json"
@@ -12,7 +19,7 @@ output_path = "datasets/processed_dataset.json"
 
 def get_uniref(tempura: dict, save_sequence=False):
     # >UniRef50_UPI002E2621C6 uncharacterized protein LOC134193701 n=1 Tax=Corticium candelabrum TaxID=121492 RepID=UPI002E2621C6
-    with open(orgprot_path, "r") as orgprot_file:
+    with open(UNIREF_PATH, "r") as orgprot_file:
         genes: dict = {}
         counter = 0
 
@@ -46,7 +53,7 @@ def get_uniref(tempura: dict, save_sequence=False):
 
 
 def get_temp():
-    with open(temp_path, "r") as temp_file:
+    with open(TEMP_PATH, "r") as temp_file:
         orgs: dict = {}
         for instance in json.load(temp_file):
             orgs[instance["taxonomy_id"]] = instance["Topt_ave"]
@@ -57,7 +64,7 @@ def get_Pfam(prot_temp: dict, split_lim: int):
     # >A0A671U9Z5_SPAAU/41-288 A0A671U9Z5.1 PF00001.26;7tm_1;
     output: dict = {}
     counter = 0
-    with open(fasta_path, "r") as fasta:
+    with open(FASTA_PATH, "r") as fasta:
         for line in fasta:
             if line.startswith(">"):
                 counter += 1
@@ -82,11 +89,6 @@ def get_Pfam(prot_temp: dict, split_lim: int):
                     else:
                         output[fami_id][prot_id]["pfam_sec"] += line.strip()
     return output
-
-
-"""
-TODO
-"""
 
 
 def main():
