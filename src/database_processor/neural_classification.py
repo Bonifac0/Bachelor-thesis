@@ -5,6 +5,8 @@ from collections import OrderedDict
 import numpy as np
 import json
 import os
+import argparse
+
 
 MODEL_8M = "esm2_t6_8M_UR50D"
 MODEL_35M = "esm2_t12_35M_UR50D"
@@ -18,7 +20,13 @@ TORCH_CPU = "cpu"
 LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 
 # JSON_PATH = "datasets/processed_dataset.json"
-JSON_PATH = "test.json"
+# JSON_PATH = "test2.json"
+
+parser = argparse.ArgumentParser(description="Filter protein data by temperature categories.")
+parser.add_argument("output", help="Output JSON file path")
+args = parser.parse_args()
+JSON_PATH = "tests" + args.output
+
 
 if not os.path.isfile(JSON_PATH):
     raise FileNotFoundError(f"Dataset file '{JSON_PATH}' does not exist.")

@@ -1,18 +1,27 @@
 import json
 import os
 import random
+import argparse
 
 INPUT_PATH = "datasets/processed_dataset.json"
-OUTPUT_PATH = "test.json"
+
+parser = argparse.ArgumentParser(description="Filter protein data by temperature categories.")
+parser.add_argument("output", help="Output JSON file path")
+parser.add_argument("--override", action="store_true", help="Override output file if it exists")
+args = parser.parse_args()
+OUTPUT_PATH = "tests" + args.output
+
+if os.path.isfile(OUTPUT_PATH) and not args.override:
+    raise FileExistsError(f"Output file '{OUTPUT_PATH}' already exists. Use --override to overwrite.")
 
 # Define temperature categories
 CATEGORIES = {
-    "lt_20": lambda t: t is not None and t < 20,
-    "20_45": lambda t: t is not None and 20 <= t < 45,
+    "lt_25": lambda t: t is not None and t < 25,
+    "25_45": lambda t: t is not None and 25 <= t < 45,
     "45_80": lambda t: t is not None and 45 <= t < 80,
     "gt_80": lambda t: t is not None and t >= 80,
 }
-CATEGORY_LIMIT = 100
+CATEGORY_LIMIT = 15
 
 if not os.path.isfile(INPUT_PATH):
     raise FileNotFoundError(f"Input file '{INPUT_PATH}' does not exist.")

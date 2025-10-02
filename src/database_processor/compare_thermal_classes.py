@@ -7,7 +7,7 @@ import os
 matplotlib.use("Agg")
 
 # dataset = "datasets/processed_dataset.json"
-DATASET_FILE = "test.json"
+DATASET_FILE = "test2.json"
 
 if not os.path.isfile(DATASET_FILE):
     raise FileNotFoundError(f"Dataset file '{DATASET_FILE}' does not exist.")
@@ -23,9 +23,9 @@ if not os.path.isfile(DATASET_FILE):
 
 
 def classify_temp(temp: float) -> str:
-    if temp < 20:
+    if temp < 30:
         return "psychrophilic"
-    elif 20 <= temp < 45:
+    elif 30 <= temp < 45:
         return "mesophilic"
     elif 45 <= temp < 80:
         return "thermophilic"
