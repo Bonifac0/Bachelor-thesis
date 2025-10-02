@@ -25,7 +25,7 @@ LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 parser = argparse.ArgumentParser(description="Filter protein data by temperature categories.")
 parser.add_argument("output", help="Output JSON file path")
 args = parser.parse_args()
-JSON_PATH = "tests" + args.output
+JSON_PATH = "tests/" + args.output
 
 
 if not os.path.isfile(JSON_PATH):

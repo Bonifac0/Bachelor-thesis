@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description="Filter protein data by temperature
 parser.add_argument("output", help="Output JSON file path")
 parser.add_argument("--override", action="store_true", help="Override output file if it exists")
 args = parser.parse_args()
-OUTPUT_PATH = "tests" + args.output
+OUTPUT_PATH = "tests/" + args.output
 
 if os.path.isfile(OUTPUT_PATH) and not args.override:
     raise FileExistsError(f"Output file '{OUTPUT_PATH}' already exists. Use --override to overwrite.")
