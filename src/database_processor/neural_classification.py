@@ -18,11 +18,14 @@ TORCH_CUDA = "cuda"
 TORCH_CPU = "cpu"
 
 LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
+BATCH_SIZE = 4
 
 # JSON_PATH = "datasets/processed_dataset.json"
 # JSON_PATH = "test2.json"
 
-parser = argparse.ArgumentParser(description="Filter protein data by temperature categories.")
+parser = argparse.ArgumentParser(
+    description="Filter protein data by temperature categories."
+)
 parser.add_argument("output", help="Output JSON file path")
 args = parser.parse_args()
 JSON_PATH = "tests/" + args.output
@@ -30,6 +33,7 @@ JSON_PATH = "tests/" + args.output
 
 if not os.path.isfile(JSON_PATH):
     raise FileNotFoundError(f"Dataset file '{JSON_PATH}' does not exist.")
+
 
 def load_pretrained_model(model_name: str, torch_device: str):
     # model, alphabet = torch.hub.load("facebookresearch/esm:main", model_name)
@@ -178,11 +182,6 @@ class ModelClassifier(torch.nn.Module):
 
 
 def tensor_to_class_label(tensor):
-    """
-    Converts a tensor output (logits or probabilities) to class labels.
-    Input shape: (batch_size, num_classes)
-    Returns: list of class strings
-    """
     arr = np.array(tensor, dtype=float)
     idxs = np.argmax(arr, axis=-1)
     return [LABELS[i] for i in idxs]
@@ -232,16 +231,33 @@ if __name__ == "__main__":
 
     protein_list = []
     protein_keys = []
+
+    # Collect all proteins
     for fam, entries in data.items():
         for prot_id, entry in entries.items():
             if "pfam_sec" in entry:
                 protein_list.append((prot_id, entry["pfam_sec"]))
                 protein_keys.append((fam, prot_id))
 
-    preds = tensor_to_class_label(classify(protein_list))
+    # Process in batches with simple print feedback
+    preds = []
+    total_batches = (len(protein_list) + BATCH_SIZE - 1) // BATCH_SIZE
 
+    for batch_idx in range(0, len(protein_list), BATCH_SIZE):
+        batch = protein_list[batch_idx : batch_idx + BATCH_SIZE]
+        batch_number = batch_idx // BATCH_SIZE + 1
+
+        print(
+            f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins)"
+        )
+
+        batch_preds = tensor_to_class_label(classify(batch))
+        preds.extend(batch_preds)
+
+    # Assign predictions back to data
     for (fam, prot_id), pred in zip(protein_keys, preds):
         data[fam][prot_id]["pred"] = pred
 
+    # Save results
     with open(JSON_PATH, "w") as f:
         json.dump(data, f, indent=4)
