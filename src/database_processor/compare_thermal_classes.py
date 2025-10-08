@@ -3,11 +3,17 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import argparse
+
 
 matplotlib.use("Agg")
 
-# dataset = "datasets/processed_dataset.json"
 DATASET_FILE = "test_combined.json"
+
+parser = argparse.ArgumentParser(description="Make confusion table.")
+parser.add_argument("input", help="Input JSON file path")
+args = parser.parse_args()
+DATASET_FILE = args.input
 
 if not os.path.isfile(DATASET_FILE):
     raise FileNotFoundError(f"Dataset file '{DATASET_FILE}' does not exist.")
