@@ -19,6 +19,9 @@ TORCH_CPU = "cpu"
 
 LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 BATCH_SIZE = 4
+DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
+MODEL_PATH = "resources/model-664.pt"  # .pt file
+
 
 # JSON_PATH = "datasets/processed_dataset.json"
 # JSON_PATH = "test2.json"
@@ -28,7 +31,8 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("output", help="Output JSON file path")
 args = parser.parse_args()
-JSON_PATH = "tests/" + args.output
+# JSON_PATH = "tests/" + args.output
+JSON_PATH = args.output
 
 
 if not os.path.isfile(JSON_PATH):
@@ -187,13 +191,7 @@ def tensor_to_class_label(tensor):
     return [LABELS[i] for i in idxs]
 
 
-def classify(
-    inp: typing.List[typing.Tuple[str, str]],
-) -> typing.List[typing.Tuple[str, str]]:
-    model_path = "resources/model-664.pt"  # replace with your model path
-
-    DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
-
+def prepare_model():
     print("loading pretrained model (scaffolding)...")
     model_pretrain, _, _, batch_converter, _, alphabet = load_pretrained_model(
         model_name=MODEL_650M, torch_device=TORCH_CPU
@@ -208,24 +206,32 @@ def classify(
     ).to(DEVICE)
 
     print("loading finetuned weights...")
-    checkpoint = torch.load(model_path, map_location=TORCH_CPU)
+    checkpoint = torch.load(MODEL_PATH, map_location=TORCH_CPU)
     checkpoint_2 = OrderedDict(
         (k.replace("module.", ""), v) for k, v in checkpoint["model_state_dict"].items()
     )
     model.load_state_dict(checkpoint_2)
     model.to(DEVICE)
     model.eval()
+    print("model loaded")
+    return model, batch_converter
 
+
+def classify(
+    model,
+    batch_converter,
+    inp: typing.List[typing.Tuple[str, str]],
+) -> typing.List[typing.Tuple[str, str]]:
     print("pass through the model...")
     _, _, inputs = batch_converter(inp)
     inputs = inputs.to(DEVICE)
     with torch.no_grad():
         output = model(inputs)[0]
-    # print(output)
     return output
 
 
 if __name__ == "__main__":
+    model, batch_converter = prepare_model()
     with open(JSON_PATH, "r") as f:
         data = json.load(f)
 
@@ -251,7 +257,7 @@ if __name__ == "__main__":
             f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins)"
         )
 
-        batch_preds = tensor_to_class_label(classify(batch))
+        batch_preds = tensor_to_class_label(classify(model, batch_converter, batch))
         preds.extend(batch_preds)
 
     # Assign predictions back to data
