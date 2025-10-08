@@ -16,10 +16,10 @@ if os.path.isfile(OUTPUT_PATH) and not args.override:
 
 # Define temperature categories
 CATEGORIES = {
-    "lt_25": lambda t: t is not None and t < 25,
-    "25_45": lambda t: t is not None and 25 <= t < 45,
-    "45_80": lambda t: t is not None and 45 <= t < 80,
-    "gt_80": lambda t: t is not None and t >= 80,
+    "psychrophilic": lambda t: t is not None and t < 15,
+    "mesophilic": lambda t: t is not None and 30 <= t < 35,
+    "thermophilic": lambda t: t is not None and 50 <= t < 70,
+    "hyperthermophilic": lambda t: t is not None and t >= 80,
 }
 CATEGORY_LIMIT = 15
 

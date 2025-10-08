@@ -23,9 +23,9 @@ if not os.path.isfile(DATASET_FILE):
 
 
 def classify_temp(temp: float) -> str:
-    if temp < 30:
+    if temp < 25:
         return "psychrophilic"
-    elif 30 <= temp < 45:
+    elif 25 <= temp < 45:
         return "mesophilic"
     elif 45 <= temp < 80:
         return "thermophilic"
