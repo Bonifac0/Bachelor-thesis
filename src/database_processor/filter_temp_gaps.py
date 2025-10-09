@@ -41,17 +41,21 @@ stats = {
 }
 
 output = {}
+counter = 0
 
 for fam_id, fam in data.items():
     for prot_id, prot in fam.items():
         cls = classify_temp(prot["temp"])
         if cls:
+            if len(prot["pfam_sec"]) > 1000:
+                counter += 1
+                continue
             stats[cls] += 1
             if fam_id not in output:
                 output[fam_id] = {}
             output[fam_id][prot_id] = prot
 
-
+print(counter)
 print(stats)
 
 with open(OUTPUT_PATH, "w") as f:
