@@ -57,6 +57,7 @@ with open(DATASET_FILE, "r") as f:
                 conf_matrix[i, j] += 1
 
 counts = np.sum(conf_matrix, axis=1)
+total_sum = np.sum(conf_matrix)
 
 # Plot confusion matrix
 fig, ax = plt.subplots()
@@ -69,7 +70,7 @@ ax.set_xticklabels(labels, rotation=30)
 ax.set_yticklabels(labels, rotation=30)
 ax.set_xlabel("Predicted class")
 ax.set_ylabel("True class")
-plt.title("Thermal Class Confusion Matrix")
+plt.title(f"Thermal Class Confusion Matrix (Total: {total_sum})")
 
 # Annotate each cell
 for i in range(4):
