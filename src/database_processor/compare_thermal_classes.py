@@ -56,9 +56,11 @@ with open(DATASET_FILE, "r") as f:
                 j = label_to_idx[pred_class]
                 conf_matrix[i, j] += 1
 
+counts = np.sum(conf_matrix, axis=1)
+
 # Plot confusion matrix
 fig, ax = plt.subplots()
-im = ax.imshow(conf_matrix, cmap="Blues")
+im = ax.imshow(conf_matrix / counts[:, np.newaxis], cmap="Blues")
 
 # Show all ticks and label them
 ax.set_xticks(np.arange(4))
@@ -72,7 +74,14 @@ plt.title("Thermal Class Confusion Matrix")
 # Annotate each cell
 for i in range(4):
     for j in range(4):
-        ax.text(j, i, conf_matrix[i, j], ha="center", va="center", color="black")
+        ax.text(
+            j,
+            i,
+            f"{conf_matrix[i, j] / counts[i]:.3f}",
+            ha="center",
+            va="center",
+            color="black",
+        )
 
 plt.colorbar(im)
 plt.tight_layout()
