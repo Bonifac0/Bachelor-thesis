@@ -18,7 +18,7 @@ TORCH_CUDA = "cuda"
 TORCH_CPU = "cpu"
 
 LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
-BATCH_SIZE = 4
+BATCH_SIZE = 32
 DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
 MODEL_PATH = "resources/model-664.pt"  # .pt file
 
@@ -186,7 +186,7 @@ class ModelClassifier(torch.nn.Module):
 
 
 def tensor_to_class_label(tensor):
-    arr = np.array(tensor, dtype=float)
+    arr = tensor.detach().to("cpu").numpy()
     idxs = np.argmax(arr, axis=-1)
     return [LABELS[i] for i in idxs]
 
@@ -222,7 +222,6 @@ def classify(
     batch_converter,
     inp: typing.List[typing.Tuple[str, str]],
 ) -> typing.List[typing.Tuple[str, str]]:
-    print("pass through the model...")
     _, _, inputs = batch_converter(inp)
     inputs = inputs.to(DEVICE)
     with torch.no_grad():
@@ -249,21 +248,31 @@ if __name__ == "__main__":
     preds = []
     total_batches = (len(protein_list) + BATCH_SIZE - 1) // BATCH_SIZE
 
+    print()
     for batch_idx in range(0, len(protein_list), BATCH_SIZE):
         batch = protein_list[batch_idx : batch_idx + BATCH_SIZE]
         batch_number = batch_idx // BATCH_SIZE + 1
 
         print(
-            f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins)"
+            f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins)",
+            end="\r",
         )
 
-        batch_preds = tensor_to_class_label(classify(model, batch_converter, batch))
+        outputs = classify(model, batch_converter, batch)  # on GPU
+        batch_preds = tensor_to_class_label(outputs)  # move to CPU
         preds.extend(batch_preds)
+
+        del outputs
+        del batch_preds
+        del batch
+        torch.cuda.empty_cache()
+    print()
 
     # Assign predictions back to data
     for (fam, prot_id), pred in zip(protein_keys, preds):
         data[fam][prot_id]["pred"] = pred
 
+    print(f"Saving to {JSON_PATH}")
     # Save results
     with open(JSON_PATH, "w") as f:
         json.dump(data, f, indent=4)

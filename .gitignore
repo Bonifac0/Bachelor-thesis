@@ -2,6 +2,7 @@
 test*
 /resources/model*
 .directory
+/graiviard
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
