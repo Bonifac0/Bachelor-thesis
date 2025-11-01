@@ -33,13 +33,12 @@ def get_uniref(tempura: dict, save_sequence=False):
                 pattern = r"UniRef50_(\S+).*?Tax=(.*?) TaxID=(\d+)"
                 match = re.search(pattern, line)
 
-                if match:
+                if match and int(match.group(3)) in tempura:
                     last_prot_id = match.group(1)  # UPI002E2621C6
-                    if int(match.group(3)) in tempura:
-                        genes[last_prot_id] = {}
-                        genes[last_prot_id]["temp"] = tempura[int(match.group(3))][0]
-                        genes[last_prot_id]["org"] = tempura[int(match.group(3))][1]
-                        genes[last_prot_id]["org_id"] = int(match.group(3))
+                    genes[last_prot_id] = {}
+                    genes[last_prot_id]["temp"] = tempura[int(match.group(3))][0]
+                    genes[last_prot_id]["org"] = tempura[int(match.group(3))][1]
+                    genes[last_prot_id]["org_id"] = int(match.group(3))
 
                 else:  # Probably not known organism
                     last_prot_id = None
@@ -64,7 +63,7 @@ def get_temp():
         return orgs
 
 
-def get_Pfam(prot_temp: dict, split_lim: int):
+def get_Pfam(prot_temp: dict):
     # >A0A671U9Z5_SPAAU/41-288 A0A671U9Z5.1 PF00001.26;7tm_1;
     print()
     output: dict = {}
@@ -87,10 +86,10 @@ def get_Pfam(prot_temp: dict, split_lim: int):
 
             else:
                 if prot_id in prot_temp:
-                    if "pfam_sec" not in output[fami_id][prot_id]:
-                        output[fami_id][prot_id]["pfam_sec"] = line.strip()
+                    if "domain" not in output[fami_id][prot_id]:
+                        output[fami_id][prot_id]["domain"] = line.strip()
                     else:
-                        output[fami_id][prot_id]["pfam_sec"] += line.strip()
+                        output[fami_id][prot_id]["domain"] += line.strip()
     print()
     return output
 
@@ -101,12 +100,12 @@ def main():
         with open(prot_temp_path, "r") as f:
             org = json.load(f)
     else:
-        org = get_uniref(get_temp())
+        org = get_uniref(get_temp(), save_sequence=True)
         print(f"Writing prot-temp to {prot_temp_path}")
         with open(prot_temp_path, "w") as f:
             json.dump(org, f, indent=4)
 
-    fami = get_Pfam(org, 1)
+    fami = get_Pfam(org)
 
     print("Removing keys with no value")
     fami = {k: v for k, v in fami.items() if v}
