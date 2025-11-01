@@ -240,8 +240,8 @@ if __name__ == "__main__":
     # Collect all proteins
     for fam, entries in data.items():
         for prot_id, entry in entries.items():
-            if "pfam_sec" in entry:
-                protein_list.append((prot_id, entry["pfam_sec"]))
+            if "sequence" in entry:
+                protein_list.append((prot_id, entry["sequence"]))
                 protein_keys.append((fam, prot_id))
 
     # Process in batches with simple print feedback
