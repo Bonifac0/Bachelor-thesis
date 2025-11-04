@@ -20,14 +20,15 @@ class Classificator:
         self.MODEL_PATH = model_path
         self.model, self.batch_converter = self.prepare_model()
 
-    def classify(
-        self, inp: typing.List[typing.Tuple[str, str]]
-    ) -> typing.List[typing.Tuple[str, str]]:
+    def classify(self, inp: typing.List[typing.Tuple[str, str]]) -> typing.List:
+        """
+        Return matrix 4*BatchSize of probabilities.
+        """
         _, _, inputs = self.batch_converter(inp)
         inputs = inputs.to(DEVICE)
         with torch.no_grad():
             output = self.model(inputs)[0]
-        return output
+        return output.detach().to("cpu").tolist()
 
     def load_pretrained_model(self, model_name: str, torch_device: str):
         # model, alphabet = torch.hub.load("facebookresearch/esm:main", model_name)

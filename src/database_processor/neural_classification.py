@@ -12,7 +12,7 @@ because pyhon need to load Clasificator
 """
 
 # BATCH_SIZE = 32
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 MODEL_PATH = "resources/model-664.pt"  # .pt file
 
 
@@ -96,15 +96,9 @@ def main():
             end="\r",
         )
 
-        outputs = classificator.classify(batch)  # on GPU
-        # batch_preds = tensor_to_class_label(outputs)  # move to CPU
-        batch_preds = outputs.detach().to("cpu").tolist()
-        preds.extend(batch_preds)
+        outputs = classificator.classify(batch)
+        preds.extend(outputs)
 
-        # del outputs
-        # del batch_preds
-        # del batch
-        # torch.cuda.empty_cache()
     print()
 
     # Assign predictions back to data
