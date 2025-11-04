@@ -5,6 +5,7 @@ from collections import OrderedDict
 import json
 import os
 import argparse
+import time
 
 
 MODEL_8M = "esm2_t6_8M_UR50D"
@@ -16,8 +17,8 @@ MODEL_15B = "esm2_t48_15B_UR50D"
 TORCH_CUDA = "cuda"
 TORCH_CPU = "cpu"
 
-BATCH_SIZE = 32
-# BATCH_SIZE = 4
+# BATCH_SIZE = 32
+BATCH_SIZE = 1
 DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
 MODEL_PATH = "resources/model-664.pt"  # .pt file
 
@@ -221,6 +222,19 @@ def classify(
     return output
 
 
+def print_eta(start_time, current_batch, total_batches):
+    elapsed = time.time() - start_time
+    avg_time = elapsed / current_batch
+    remaining_batches = total_batches - current_batch
+    eta_seconds = remaining_batches * avg_time
+
+    # Format ETA into hh:mm:ss
+    hrs, rem = divmod(int(eta_seconds), 3600)
+    mins, secs = divmod(rem, 60)
+    eta_formatted = f"{hrs:02}:{mins:02}:{secs:02}"
+    return f" | ETA: {eta_formatted}"
+
+
 if __name__ == "__main__":
     model, batch_converter = prepare_model()
     with open(IN_FILE, "r") as f:
@@ -233,12 +247,15 @@ if __name__ == "__main__":
     for fam, entries in data.items():
         for prot_id, entry in entries.items():
             if "sequence" in entry:
+                if len(entry["sequence"]) > 3000:  # hotfix
+                    continue
                 protein_list.append((prot_id, entry["sequence"]))
                 protein_keys.append((fam, prot_id))
 
     # Process in batches with simple print feedback
     preds = []
     total_batches = (len(protein_list) + BATCH_SIZE - 1) // BATCH_SIZE
+    start_time = time.time()
 
     print()
     for batch_idx in range(0, len(protein_list), BATCH_SIZE):
@@ -246,7 +263,7 @@ if __name__ == "__main__":
         batch_number = batch_idx // BATCH_SIZE + 1
 
         print(
-            f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins)",
+            f"Processing batch {batch_number}/{total_batches} ({len(batch)} proteins) {print_eta(start_time, batch_number, total_batches)}",
             end="\r",
         )
 
