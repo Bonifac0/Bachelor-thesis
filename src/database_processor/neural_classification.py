@@ -11,24 +11,22 @@ python -m src.database_processor.neural_classification inp.json out.json
 because pyhon need to load Clasificator
 """
 
-# BATCH_SIZE = 32
-BATCH_SIZE = 2
-MODEL_PATH = "resources/model-664.pt"  # .pt file
 
+def pars_arguments():
+    parser = argparse.ArgumentParser(
+        description="Filter protein data by temperature categories."
+    )
+    parser.add_argument("input", help="Input JSON file path")
+    parser.add_argument("output", help="Output JSON file path")
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser(
-    description="Filter protein data by temperature categories."
-)
-parser.add_argument("input", help="Input JSON file path")
-parser.add_argument("output", help="Output JSON file path")
-args = parser.parse_args()
+    in_file = args.input
+    out_file = args.output
 
-IN_FILE = args.input
-OUT_FILE = args.output
-
-# Check that input file exists
-if not os.path.isfile(IN_FILE):
-    raise FileNotFoundError(f"Input file '{IN_FILE}' does not exist.")
+    # Check that input file exists
+    if not os.path.isfile(in_file):
+        raise FileNotFoundError(f"Input file '{in_file}' does not exist.")
+    return in_file, out_file
 
 
 def collect_proteins(data: dict) -> tuple[list, list]:
@@ -112,4 +110,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # BATCH_SIZE = 32
+    BATCH_SIZE = 2
+    MODEL_PATH = "resources/model-664.pt"  # .pt file
+    IN_FILE, OUT_FILE = pars_arguments()
     main()
