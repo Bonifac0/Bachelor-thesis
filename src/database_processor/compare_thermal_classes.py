@@ -58,6 +58,7 @@ def array_to_class_label(arr) -> str:
     return labels[idx]
 
 
+unclassified = 0
 # Load dataset and fill confusion matrix
 with open(DATASET_FILE, "r") as f:
     data = json.load(f)
@@ -70,7 +71,9 @@ with open(DATASET_FILE, "r") as f:
                 j = label_to_idx[pred_class]
                 conf_matrix[i, j] += 1
             else:
-                print("sss")
+                unclassified += 1
+
+print(f"Unclassified: {unclassified}")
 
 counts = np.sum(conf_matrix, axis=1)
 total_sum = np.sum(conf_matrix)
@@ -102,4 +105,4 @@ for i in range(4):
 
 plt.colorbar(im)
 plt.tight_layout()
-plt.savefig("test_from_array.png")
+plt.savefig("class_confusion_matrix.png")
