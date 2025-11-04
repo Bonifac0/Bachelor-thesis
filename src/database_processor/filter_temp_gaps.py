@@ -41,8 +41,6 @@ stats = {
 }
 
 output = {}
-dom_dropped = 0
-sec_dropped = 0
 
 cls_dropped = {
     "psychrophilic": 0,
@@ -55,12 +53,6 @@ for fam_id, fam in data.items():
     for prot_id, prot in fam.items():
         cls = classify_temp(prot["temp"])
         if cls:
-            if len(prot["domain"]) > 4000:
-                dom_dropped += 1
-                continue
-            if len(prot["sequence"]) > 5000:
-                sec_dropped += 1
-                continue
             stats[cls] += 1
             if fam_id not in output:
                 output[fam_id] = {}
@@ -72,8 +64,6 @@ for fam_id, fam in data.items():
             else:
                 print("wtf")
 
-print(f"Dropped becaouse domain len: {dom_dropped}")
-print(f"Dropped becaouse sequence len: {sec_dropped}")
 print("Dropped because temperature gaps")
 print(cls_dropped)
 

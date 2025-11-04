@@ -31,6 +31,35 @@ if not os.path.isfile(IN_FILE):
     raise FileNotFoundError(f"Input file '{IN_FILE}' does not exist.")
 
 
+def collect_proteins(data: dict) -> tuple[list, list]:
+    """
+    Return list of proteins and their place in families.
+    Also dropp proteins that are too long.
+    """
+    dom_dropped = 0
+    sec_dropped = 0
+
+    protein_list = []
+    protein_keys = []
+
+    # Collect all proteins
+    for fam, entries in data.items():
+        for prot_id, entry in entries.items():
+            if "sequence" in entry:
+                if len(entry["sequence"]) > 5000:
+                    sec_dropped += 1
+                    continue
+                if len(entry["domain"]) > 4000 and False:  # turned off
+                    dom_dropped += 1
+                    continue
+                protein_list.append((prot_id, entry["sequence"]))
+                protein_keys.append((fam, prot_id))
+
+    print(f"Dropped becaouse domain len: {dom_dropped}")
+    print(f"Dropped becaouse sequence len: {sec_dropped}")
+    return protein_list, protein_keys
+
+
 def print_eta(start_time, current_batch, total_batches):
     elapsed = time.time() - start_time
     avg_time = elapsed / current_batch
@@ -50,17 +79,7 @@ def main():
     with open(IN_FILE, "r") as f:
         data = json.load(f)
 
-    protein_list = []
-    protein_keys = []
-
-    # Collect all proteins
-    for fam, entries in data.items():
-        for prot_id, entry in entries.items():
-            if "sequence" in entry:
-                if len(entry["sequence"]) > 3000:  # hotfix
-                    continue
-                protein_list.append((prot_id, entry["sequence"]))
-                protein_keys.append((fam, prot_id))
+    protein_list, protein_keys = collect_proteins(data)
 
     # Process in batches with simple print feedback
     preds = []
