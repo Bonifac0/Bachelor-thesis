@@ -2,7 +2,6 @@ import esm
 import torch
 import typing
 from collections import OrderedDict
-import numpy as np
 import json
 import os
 import argparse
@@ -17,26 +16,25 @@ MODEL_15B = "esm2_t48_15B_UR50D"
 TORCH_CUDA = "cuda"
 TORCH_CPU = "cpu"
 
-LABELS = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 BATCH_SIZE = 32
+# BATCH_SIZE = 4
 DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
 MODEL_PATH = "resources/model-664.pt"  # .pt file
 
 
-# JSON_PATH = "datasets/processed_dataset.json"
-# JSON_PATH = "test2.json"
-
 parser = argparse.ArgumentParser(
     description="Filter protein data by temperature categories."
 )
+parser.add_argument("input", help="Input JSON file path")
 parser.add_argument("output", help="Output JSON file path")
 args = parser.parse_args()
-# JSON_PATH = "tests/" + args.output
-JSON_PATH = args.output
 
+IN_FILE = args.input
+OUT_FILE = args.output
 
-if not os.path.isfile(JSON_PATH):
-    raise FileNotFoundError(f"Dataset file '{JSON_PATH}' does not exist.")
+# Check that input file exists
+if not os.path.isfile(IN_FILE):
+    raise FileNotFoundError(f"Input file '{IN_FILE}' does not exist.")
 
 
 def load_pretrained_model(model_name: str, torch_device: str):
@@ -185,12 +183,6 @@ class ModelClassifier(torch.nn.Module):
         return [out_cat, out_bin, out_reg]
 
 
-def tensor_to_class_label(tensor):
-    arr = tensor.detach().to("cpu").numpy()
-    idxs = np.argmax(arr, axis=-1)
-    return [LABELS[i] for i in idxs]
-
-
 def prepare_model():
     print("loading pretrained model (scaffolding)...")
     model_pretrain, _, _, batch_converter, _, alphabet = load_pretrained_model(
@@ -231,7 +223,7 @@ def classify(
 
 if __name__ == "__main__":
     model, batch_converter = prepare_model()
-    with open(JSON_PATH, "r") as f:
+    with open(IN_FILE, "r") as f:
         data = json.load(f)
 
     protein_list = []
@@ -259,7 +251,8 @@ if __name__ == "__main__":
         )
 
         outputs = classify(model, batch_converter, batch)  # on GPU
-        batch_preds = tensor_to_class_label(outputs)  # move to CPU
+        # batch_preds = tensor_to_class_label(outputs)  # move to CPU
+        batch_preds = outputs.detach().to("cpu").tolist()
         preds.extend(batch_preds)
 
         del outputs
@@ -272,7 +265,7 @@ if __name__ == "__main__":
     for (fam, prot_id), pred in zip(protein_keys, preds):
         data[fam][prot_id]["pred"] = pred
 
-    print(f"Saving to {JSON_PATH}")
+    print(f"Saving to {OUT_FILE}")
     # Save results
-    with open(JSON_PATH, "w") as f:
+    with open(OUT_FILE, "w") as f:
         json.dump(data, f, indent=4)

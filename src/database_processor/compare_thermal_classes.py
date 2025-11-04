@@ -23,9 +23,17 @@ if not os.path.isfile(DATASET_FILE):
 #     "PF10417": {
 #         "A0A6N7IUS6": {
 #             "temp": 55.0,
-#             "pred_temp": 59.0,
-#             "pfam_sec": "AVQFAAATGEGVPAGWHPGQPGIKIEFDQAGTSIKPISSMIVSLLSDRTQEISWTYEVLDEETGAAYRATFIISPQSRIEYY"
-#         },
+#             "org": "Desulfotomaculum thermobenzoicum",
+#             "org_id": 29376,
+#             "sequence": "MTAGWWVRWLCVQCHGYKVPVTPAISPSIKPISSMIVSLLSDRTQEISWTYEVLDEETGAAYRATFIISPQSRIEYYCVYPREVGRNVDEIIRVLQAVQFAAATGEGVPAGWHPGQPGIKIEFDQAGTI",
+#             "domain": "AVQFAAATGEGVPAGWHPGQPGIKIEFDQAGTSIKPISSMIVSLLSDRTQEISWTYEVLDEETGAAYRATFIISPQSRIEYY",
+#             "pred_dom": [
+#                 -1.804720401763916,
+#                 -0.6776391267776489,
+#                 2.078350067138672,
+#                 -1.1388511657714844
+#             ]
+#         }
 
 
 def classify_temp(temp: float) -> str:
@@ -44,6 +52,12 @@ labels = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 label_to_idx = {label: i for i, label in enumerate(labels)}
 conf_matrix = np.zeros((4, 4), dtype=int)
 
+
+def array_to_class_label(arr) -> str:
+    idx = np.argmax(arr)
+    return labels[idx]
+
+
 # Load dataset and fill confusion matrix
 with open(DATASET_FILE, "r") as f:
     data = json.load(f)
@@ -51,10 +65,12 @@ with open(DATASET_FILE, "r") as f:
         for entry in fam.values():
             if "temp" in entry and "pred" in entry:
                 true_class = classify_temp(entry["temp"])
-                pred_class = entry["pred"]
+                pred_class = array_to_class_label(entry["pred"])
                 i = label_to_idx[true_class]
                 j = label_to_idx[pred_class]
                 conf_matrix[i, j] += 1
+            else:
+                print("sss")
 
 counts = np.sum(conf_matrix, axis=1)
 total_sum = np.sum(conf_matrix)
@@ -86,4 +102,4 @@ for i in range(4):
 
 plt.colorbar(im)
 plt.tight_layout()
-plt.savefig("resources/class_confusion_matrix.png")
+plt.savefig("test_from_array.png")
