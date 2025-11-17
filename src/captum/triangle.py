@@ -3,6 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from captum.attr import IntegratedGradients
 import os
+import matplotlib
+
+matplotlib.use("agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 
 class ToySoftmaxModel(nn.Module):
@@ -83,8 +88,7 @@ if os.path.exists(MODEL_PATH):
 else:
     train(model)
 
-test_inp = torch.tensor([[5.0, 7.0, -6.0, -8.0, 5.0, 4.0]])  # shape (1, 6)
-print(model(test_inp))
+test_inp = torch.tensor([[2.0, 2.0, 3.0, 2.0, 2.0, 3.0]])  # shape (1, 6)
 
 
 # attribution score will be computed with respect to target class
@@ -99,3 +103,59 @@ attributions, approximation_error = ig.attribute(
 
 print()
 print(attributions)
+
+
+# ----------------------------
+# Integrated Gradients
+# ----------------------------
+ig = IntegratedGradients(model)
+all_attributions = []
+
+for cls in range(4):
+    attr, _ = ig.attribute(test_inp, target=cls, return_convergence_delta=True)
+    # reshape to (3,2) for the three points
+    all_attributions.append(attr.reshape(3, 2).detach().numpy())
+
+# ----------------------------
+# Visualization
+# ----------------------------
+pts = test_inp.reshape(3, 2)
+fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+
+xlim = [-10, 10]
+ylim = [-10, 10]
+for cls in range(4):
+    ax = axes[cls]
+    # compute magnitude of attribution per point for coloring
+    magnitudes = (all_attributions[cls]).sum(axis=1)
+    sc = ax.scatter(
+        pts[:, 0].numpy(),
+        pts[:, 1].numpy(),
+        s=200,
+        c=magnitudes,
+        cmap="viridis",
+    )
+    if cls == 0:
+        rect = patches.Rectangle((0, 0), xlim[1], ylim[1], color="yellow", alpha=0.2)
+    elif cls == 1:
+        rect = patches.Rectangle(
+            (xlim[0], 0), -xlim[0], ylim[1], color="yellow", alpha=0.2
+        )
+    elif cls == 2:
+        rect = patches.Rectangle(
+            (xlim[0], ylim[0]), -xlim[0], -ylim[0], color="yellow", alpha=0.2
+        )
+    else:
+        rect = patches.Rectangle(
+            (0, ylim[0]), xlim[1], -ylim[0], color="yellow", alpha=0.2
+        )
+    ax.add_patch(rect)
+    ax.set_title(f"Class {cls}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    fig.colorbar(sc, ax=ax)
+
+plt.tight_layout()
+plt.savefig("test_triangle_importances.png")  # save figure to file

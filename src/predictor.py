@@ -2,6 +2,7 @@ import esm
 import torch
 import typing
 from collections import OrderedDict
+import torch.nn.functional as F
 
 
 MODEL_8M = "esm2_t6_8M_UR50D"
@@ -28,7 +29,7 @@ class Classificator:
         inputs = inputs.to(DEVICE)
         with torch.no_grad():
             output = self.model(inputs)[0]
-        return output.detach().to("cpu").tolist()
+        return F.softmax(output.detach().to("cpu"), dim=1).tolist()
 
     def load_pretrained_model(self, model_name: str, torch_device: str):
         # model, alphabet = torch.hub.load("facebookresearch/esm:main", model_name)
@@ -200,3 +201,29 @@ class ModelClassifier(torch.nn.Module):
         out_reg = self.out_regression(x[0, :, :])
 
         return [out_cat, out_bin, out_reg]
+
+
+if __name__ == "__main__":
+    import torch.nn.functional as F
+
+    MODEL_PATH = "resources/model-664.pt"  # .pt file
+    classificator = Classificator(MODEL_PATH)
+
+    example_inp = [
+        (
+            "A0A512HC40",
+            "MSVGVGCSSSCSPETLAALVRATLAEAAVPLDRIACIATLDRRVPHPAVQGLARALGGVPVRGFSPETLNAVAPERLRTVSEKTRQTVGCASVAEAAALCALGSRARLLIPRRADARATCAVATSPSHGP",
+        )
+    ]
+    PETase = [  # 32 mutaci
+        (
+            "wild-type",
+            "MNFPRASRLMQAAVLGGLMAVSAAATAQTNPYARGPNPTAASLEASAGPFTVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIAIVPGYTARQSSIKWWGPRLASHGFVVITIDTNSTLDQPSSRSSQQMAALRQVASLNGTSSSPIYGKVDTARMGVMGWSMGGGGSLISAANNPSLKAAAPQAPWDSSTNFSSVTVPTLIFACENDSIAPVNSSALPIYDSMSRNAKQFLEINGGSHSCANSGNSNQALIGKKGVAWMKRFMDNDTRYSTFACENPNSTRVSDFRTANCS",
+        ),
+        (
+            "LK generated",
+            "MNFPRASRLMQAAVLGGLMAVSAAATALTNPYARGPPPTAASLEASAGPFYVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIVIVLGYTARQSSIIWWGPRLASHGFVVITIITNSTLDQPSSRSSQALAALLQVLSLNGTSSSPIYYKVDNARMLVLGWSMGGGGSLILAANNESLKAAAPPAPWDSSTNFSSVTVPTLIIICENDSIAPVNSSALPIYYSMSRNAKQFLVIIGGSHSCANSSNSPQALIGKKYVAWWMRFMLNDTRYYTFACEPPNSTRVSDFYTANCS",
+        ),
+    ]
+    outputs = classificator.classify(PETase)
+    print(outputs)
