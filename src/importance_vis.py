@@ -4,27 +4,32 @@ matplotlib.use("agg")
 import matplotlib.pyplot as plt
 
 
-def make_importance(protein: str, importance: list[float]):
-    x = range(len(protein))
+def make_importance(
+    protein: str, importance: list[list[float]], probability: list[float]
+):
+    labels = ["psychrophilic", "mesophilic", "thermophilic", "hyperthermophilic"]
 
-    plt.figure(figsize=(8, 5))
-    plt.bar(x, importance, color="skyblue")
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes = axes.flatten()
 
-    # Set x-ticks to the amino acids
-    plt.xticks(x, list(protein))
+    for idx, imp in enumerate(importance):
+        ax = axes[idx]
+        x = range(len(protein))
 
-    plt.xlabel("Amino Acid")
-    plt.ylabel("Importance")
-    plt.ylim([0, (max(importance) * 1.2)])
-    plt.title("Amino Acid Importance in Protein Thermostability")
+        ax.bar(x, imp)
+        ax.set_xticks(x)
+        ax.set_xticklabels(list(protein))
+        ax.set_xlabel("Amino Acid")
+        ax.set_ylabel("Importance")
+        ax.set_ylim([0, max(imp) * 1.2])
+        ax.set_title(f"Importance for {labels[idx]} ({probability[idx]})")
 
-    # Add values on top of bars
-    for i, val in enumerate(importance):
-        plt.text(i, val + 0.01, f"{val:.2f}", ha="center")
+        for i, val in enumerate(imp):
+            ax.text(i, val + 0.01, f"{val:.2f}", ha="center")
 
-    plt.savefig("test_importance.png")  # save figure to file
+    plt.tight_layout()
+    plt.savefig("test_importance.png")
 
 
 if __name__ == "__main__":
-    protein = "SMRLOOP"
-    importance = [0.1, 0.1, 0.2, 0.3, 0.05, 0.15, 0.1]
+    pass

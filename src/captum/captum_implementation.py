@@ -12,16 +12,38 @@ because pyhon need to load Clasificator
 """
 
 
+def captum(mdl: Classificator, inp):
+    _, _, tokens = mdl.batch_converter(inp)
+    embedding = mdl.model.embedding(tokens)
+
+    ig = IntegratedGradients(mdl.model.forward_embedding)
+    output = []
+    for cls in range(4):
+        attr, _ = ig.attribute(embedding, target=cls, return_convergence_delta=True)
+        data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1], dim=0).tolist()
+        output.append(data)
+
+    probability = mdl.classify(inp)[0]
+
+    make_importance(inp[0][1], output, probability)
+
+
 def main(mdl: Classificator):
     example_inp = [
         (
             "A0A512HC40",
-            "SSRKVKWFNSEKGFGF",
+            "SSRKVKWFNSEKSFSF",
         )
     ]
     cold_shock = [
-        ("ori", "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL"),
-        ("mut", "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA"),
+        (
+            "ori",
+            "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL",
+        ),
+        (
+            "mut",
+            "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA",
+        ),
     ]
     PETase = [  # 32 mutaci
         (
@@ -33,25 +55,8 @@ def main(mdl: Classificator):
             "MNFPRASRLMQAAVLGGLMAVSAAATALTNPYARGPPPTAASLEASAGPFYVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIVIVLGYTARQSSIIWWGPRLASHGFVVITIITNSTLDQPSSRSSQALAALLQVLSLNGTSSSPIYYKVDNARMLVLGWSMGGGGSLILAANNESLKAAAPPAPWDSSTNFSSVTVPTLIIICENDSIAPVNSSALPIYYSMSRNAKQFLVIIGGSHSCANSSNSPQALIGKKYVAWWMRFMLNDTRYYTFACEPPNSTRVSDFYTANCS",
         ),
     ]
-    _, _, tokens = mdl.batch_converter(example_inp)
-    # print(tokens)
-    embedding = mdl.model.embedding(tokens)
-    # output = mdl.model.forward_embedding(embedding)
-    # print(output)
-    # sftmax = F.softmax(output.detach().to("cpu"), dim=1).tolist()
-    # print(sftmax)
 
-    ig = IntegratedGradients(mdl.model.forward_embedding)
-    attr, _ = ig.attribute(embedding, target=0, return_convergence_delta=True)
-    print(attr.sum(dim=2))
-    data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1]).tolist()
-    print(data)
-    make_importance(example_inp[0][1], data)
-
-    # attr, _ = ig.attribute(embedding, target=1, return_convergence_delta=True)
-    # print(attr.sum(dim=2))
-    # outputs = classificator.classify(example_inp)
-    # print(outputs)
+    captum(mdl, example_inp)
 
 
 if __name__ == "__main__":
