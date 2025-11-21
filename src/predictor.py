@@ -3,8 +3,6 @@ import torch
 import typing
 from collections import OrderedDict
 import torch.nn.functional as F
-from captum.attr import IntegratedGradients
-from importance_vis import make_importance
 
 
 MODEL_8M = "esm2_t6_8M_UR50D"
@@ -222,53 +220,9 @@ class ModelClassifier(torch.nn.Module):
         return self.out_categorical(x[0, :, :])
 
 
-def captum(mdl: Classificator):
-    example_inp = [
-        (
-            "A0A512HC40",
-            "SSR",
-        )
-    ]
-    cold_shock = [
-        ("ori", "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL"),
-        ("mut", "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA"),
-    ]
-    PETase = [  # 32 mutaci
-        (
-            "wild-type",
-            "MNFPRASRLMQAAVLGGLMAVSAAATAQTNPYARGPNPTAASLEASAGPFTVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIAIVPGYTARQSSIKWWGPRLASHGFVVITIDTNSTLDQPSSRSSQQMAALRQVASLNGTSSSPIYGKVDTARMGVMGWSMGGGGSLISAANNPSLKAAAPQAPWDSSTNFSSVTVPTLIFACENDSIAPVNSSALPIYDSMSRNAKQFLEINGGSHSCANSGNSNQALIGKKGVAWMKRFMDNDTRYSTFACENPNSTRVSDFRTANCS",
-        ),
-        # (
-        #     "LK generated",
-        #     "MNFPRASRLMQAAVLGGLMAVSAAATALTNPYARGPPPTAASLEASAGPFYVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIVIVLGYTARQSSIIWWGPRLASHGFVVITIITNSTLDQPSSRSSQALAALLQVLSLNGTSSSPIYYKVDNARMLVLGWSMGGGGSLILAANNESLKAAAPPAPWDSSTNFSSVTVPTLIIICENDSIAPVNSSALPIYYSMSRNAKQFLVIIGGSHSCANSSNSPQALIGKKYVAWWMRFMLNDTRYYTFACEPPNSTRVSDFYTANCS",
-        # ),
-    ]
-    _, _, tokens = mdl.batch_converter(example_inp)
-    # print(tokens)
-    embedding = mdl.model.embedding(tokens)
-    # output = mdl.model.forward_embedding(embedding)
-    # print(output)
-    # sftmax = F.softmax(output.detach().to("cpu"), dim=1).tolist()
-    # print(sftmax)
-
-    ig = IntegratedGradients(mdl.model.forward_embedding)
-    attr, _ = ig.attribute(embedding, target=0, return_convergence_delta=True)
-    print(attr.sum(dim=2))
-    data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1]).tolist()
-    print(data)
-    make_importance(example_inp[0][1], data)
-
-    # attr, _ = ig.attribute(embedding, target=1, return_convergence_delta=True)
-    # print(attr.sum(dim=2))
-    # outputs = classificator.classify(example_inp)
-    # print(outputs)
-
-
 if __name__ == "__main__":
     MODEL_PATH = "resources/model-664.pt"  # .pt file
     classificator = Classificator(MODEL_PATH)
-
-    captum(classificator)
 
     example_inp = [
         (
@@ -276,6 +230,6 @@ if __name__ == "__main__":
             "MSVGVGCSSSCSPETLAALVRATLAEAAVPLDRIACIATLDRRVPHPAVQGLARALGGVPVRGFSPETLNAVAPERLRTVSEKTRQTVGCASVAEAAALCALGSRARLLIPRRADARATCAVATSPSHGP",
         )
     ]
-
+    # print(classificator.batch_converter([("a", "TB")]))
     # outputs = classificator.classify(example_inp)
     # print(outputs)
