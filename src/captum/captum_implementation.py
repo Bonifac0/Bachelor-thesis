@@ -13,39 +13,37 @@ because pyhon need to load Clasificator
 
 
 def captum(mdl: Classificator, inp: list[tuple[str, str]]):
-    _, _, tokens = mdl.batch_converter(inp)
-    embedding = mdl.model.embedding(tokens)
-
     probability = mdl.classify(inp)
     ig = IntegratedGradients(mdl.model.forward_embedding)
-    for i in range(len(inp)):  # iterate thru batch
+
+    for idx, input in enumerate(inp):  # iterate thru batch
+        _, _, tokens = mdl.batch_converter([input])  # can not be done all at once
+        embedding = mdl.model.embedding(tokens)
         output = []
         for cls in range(4):  # for each class
-            attr, _ = ig.attribute(
-                embedding[i].unsqueeze(0), target=cls, return_convergence_delta=True
-            )
+            attr, _ = ig.attribute(embedding, target=cls, return_convergence_delta=True)
             data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1], dim=0).tolist()
             output.append(data)
             print("s")
 
-        make_importance(inp[i], output, probability[i])
+        make_importance(inp[idx], output, probability[idx])
 
 
 def main(mdl: Classificator):
     example_inp = [
         (
-            "first",
-            "SSRKVKWFNSEKSFSF",
+            "second",
+            "RE",
         ),
         (
-            "second",
-            "EKGYGFIEVEGGRESF",
+            "first",
+            "SSR",
         ),
     ]
     cold_shock = [
         (
             "ori",
-            "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL",
+            "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL-",
         ),
         (
             "mut",

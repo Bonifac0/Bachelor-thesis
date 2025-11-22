@@ -230,6 +230,7 @@ if __name__ == "__main__":
             "MSVGVGCSSSCSPETLAALVRATLAEAAVPLDRIACIATLDRRVPHPAVQGLARALGGVPVRGFSPETLNAVAPERLRTVSEKTRQTVGCASVAEAAALCALGSRARLLIPRRADARATCAVATSPSHGP",
         )
     ]
-    # print(classificator.batch_converter([("a", "TB")]))
+    print(classificator.batch_converter([("a", "TB"), ("a", "TTB")]))
+
     # outputs = classificator.classify(example_inp)
     # print(outputs)
