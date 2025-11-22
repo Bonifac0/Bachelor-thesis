@@ -32,13 +32,13 @@ def captum(mdl: Classificator, inp: list[tuple[str, str]]):
 def main(mdl: Classificator):
     example_inp = [
         (
-            "second",
-            "RE",
+            "test_third",
+            "SRPSGRGAGTVYYP",
         ),
-        (
-            "first",
-            "SSR",
-        ),
+        # (
+        #     "first",
+        #     "SSR",
+        # ),
     ]
     cold_shock = [
         (
