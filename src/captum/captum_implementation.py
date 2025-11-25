@@ -42,11 +42,11 @@ def main(mdl: Classificator):
     ]
     cold_shock = [
         (
-            "ori",
+            "term",
             "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL-",
         ),
         (
-            "mut",
+            "mezo",
             "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA",
         ),
     ]
