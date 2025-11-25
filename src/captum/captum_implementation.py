@@ -22,7 +22,12 @@ def captum(mdl: Classificator, inp: list[tuple[str, str]]):
         embedding = mdl.model.embedding(tokens.to(DEVICE))
         output = []
         for cls in range(4):  # for each class
-            attr, _ = ig.attribute(embedding, target=cls, return_convergence_delta=True)
+            attr, _ = ig.attribute(
+                embedding,
+                target=cls,
+                return_convergence_delta=True,
+                internal_batch_size=8,
+            )
             data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1], dim=0).tolist()
             output.append(data)
             print("s")
@@ -34,7 +39,7 @@ def main(mdl: Classificator):
     example_inp = [
         (
             "test_third",
-            "SRPSGRGAGTVYYP",
+            "KVKWFNNEKGYGFIEVEGE",
         ),
         # (
         #     "first",
