@@ -2,6 +2,7 @@ from captum.attr import IntegratedGradients
 from src.importance_vis import make_importance
 from src.predictor import Classificator
 import torch.nn.functional as F
+import torch
 
 
 """
@@ -18,7 +19,7 @@ def captum(mdl: Classificator, inp: list[tuple[str, str]]):
 
     for idx, input in enumerate(inp):  # iterate thru batch
         _, _, tokens = mdl.batch_converter([input])  # can not be done all at once
-        embedding = mdl.model.embedding(tokens)
+        embedding = mdl.model.embedding(tokens.to(DEVICE))
         output = []
         for cls in range(4):  # for each class
             attr, _ = ig.attribute(embedding, target=cls, return_convergence_delta=True)
@@ -40,8 +41,8 @@ def main(mdl: Classificator):
         #     "SSR",
         # ),
     ]
-    cold_shock = [
-        (
+    cold_shock = [  # 18 GB gpu memory
+        (  # 270MB/aminoacid
             "term",
             "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL-",
         ),
@@ -50,7 +51,17 @@ def main(mdl: Classificator):
             "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA",
         ),
     ]
-    PETase = [  # 32 mutaci
+    cold_shock_long = [  # 34.5 GB gpu memory
+        (  # 257,5MB/aminoacid
+            "term",
+            "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKLAMQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKLA",
+        ),
+        (
+            "mezo",
+            "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEAMQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKLA",
+        ),
+    ]
+    PETase = [  # 32 mutaci # ~72.5GB gpu memory
         (
             "wild-type",
             "MNFPRASRLMQAAVLGGLMAVSAAATAQTNPYARGPNPTAASLEASAGPFTVRSFTVSRPSGYGAGTVYYPTNAGGTVGAIAIVPGYTARQSSIKWWGPRLASHGFVVITIDTNSTLDQPSSRSSQQMAALRQVASLNGTSSSPIYGKVDTARMGVMGWSMGGGGSLISAANNPSLKAAAPQAPWDSSTNFSSVTVPTLIFACENDSIAPVNSSALPIYDSMSRNAKQFLEINGGSHSCANSGNSNQALIGKKGVAWMKRFMDNDTRYSTFACENPNSTRVSDFRTANCS",
@@ -65,6 +76,9 @@ def main(mdl: Classificator):
 
 
 if __name__ == "__main__":
+    TORCH_CUDA = "cuda"
+    TORCH_CPU = "cpu"
+    DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
     MODEL_PATH = "resources/model-664.pt"  # .pt file
     classificator = Classificator(MODEL_PATH)
 
