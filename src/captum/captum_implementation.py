@@ -1,5 +1,5 @@
 from captum.attr import IntegratedGradients
-from src.importance_vis import make_importance
+from src.heplers.importance_vis import make_importance
 from src.predictor import Classificator
 import torch.nn.functional as F
 import torch
@@ -26,7 +26,8 @@ def captum(mdl: Classificator, inp: list[tuple[str, str]]):
                 embedding,
                 target=cls,
                 return_convergence_delta=True,
-                internal_batch_size=8,
+                # internal_batch_size=16,
+                # n_steps=10,
             )
             data = F.softmax(attr.sum(dim=2).squeeze(dim=0)[1:-1], dim=0).tolist()
             output.append(data)
@@ -40,6 +41,7 @@ def main(mdl: Classificator):
         (
             "test_third",
             "KVKWFNNEKGYGFIEVEGE",
+            # "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKLMQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL",
         ),
         # (
         #     "first",
