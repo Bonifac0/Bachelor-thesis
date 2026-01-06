@@ -2,6 +2,7 @@ from src.predictor import Classificator
 from src.heplers.levenshtein import levenshtein
 import numpy as np
 import random
+import json
 
 
 """
@@ -46,31 +47,36 @@ def single_revert(baseline: str, modified: str) -> list[str]:
 
 
 def bulk(  # TODO OPTIONAL add option to overcome local minimum
-    mdl: Classificator, baseline: str, top_threshold: float = 0.9, batchsize: int = 10
-) -> str | None:
+    mdl: Classificator,
+    baseline: str,
+    top_threshold: float = 0.9,
+    batchsize: int = 10,
+    max_cycles: int = 20,
+) -> tuple[str, int] | None:
     """
-    Adding mutation to move to thermoclass
+    Adding mutation to move to thermoclass.
+    Return mutant and number of mutation.
     """
     best_mutant = baseline
     best_score: float = mdl.classify([("", baseline)])[0][3]
     print(f"baseline: {best_score}")
 
-    for cycle in range(min(20, len(baseline))):  # max cycles
+    for cycle in range(min(max_cycles, len(baseline))):  # max cycles
         better_mutants = random_single_mutants(best_mutant, batchsize)
         props = mdl.classify([("", i) for i in better_mutants])
         best_index = np.argmax([i[3] for i in props])  # most hyperthermophilic
 
         if props[best_index][3] >= top_threshold:
-            print(f"number of cycles: {cycle}")
-            print(f"number of mutations: {levenshtein(best_mutant, baseline)}")
-            return best_mutant
+            num_mutation = levenshtein(best_mutant, baseline)
+            print(f"number of mutations: {num_mutation}")
+            return (best_mutant, num_mutation)
         else:
             if props[best_index][3] > best_score:
                 best_mutant = better_mutants[best_index]
                 best_score = props[best_index][3]
-                print(props[best_index][3])
-            else:
-                print("better not found in this iteration")
+                # print(props[best_index][3])
+            # else:
+            # print("better not found in this iteration")
             # print([props[i][3] for i in range(len(props))], best_index)
 
         # print(f"best score: {best_score}")
@@ -82,7 +88,7 @@ def cut(  # TODO check if work corectlly
     heavy_mutant: str,
     baseline: str,
     bottom_threshold: float = 0.8,
-) -> str:
+) -> tuple[str, int]:
     """
     Cutting mutation while keeping thermoclass
     """
@@ -94,40 +100,70 @@ def cut(  # TODO check if work corectlly
 
         if props[best_index][3] >= bottom_threshold:
             minimal_mutant = lighter_mutants[best_index]
-            print(props[best_index][3])
+            # print(props[best_index][3])
             # print([props[i][3] for i in range(len(props))], best_index)
         else:
             break
-    print(f"final number of mutations: {levenshtein(minimal_mutant, baseline)}")
-    return minimal_mutant
+    num_mutation = levenshtein(minimal_mutant, baseline)
+    print(f"final number of mutations: {num_mutation}")
+    return (minimal_mutant, num_mutation)
+
+
+def mutate(
+    mdl: Classificator,
+    baseline: str,
+    bottom_threshold: float = 0.8,
+    top_threshold: float = 0.9,
+) -> dict | None:
+    """
+    Create more hyperthermophilic mutant of baseline protein,
+    based on given model.
+
+    Add mutation until top_threshold is reach and than
+    least important changes are removed until the bottom_threshold is reached.
+    """
+    output: dict = {}
+    output["sequence"] = baseline
+
+    heavy_mutant = bulk(mdl, baseline, top_threshold)
+    if heavy_mutant is None:
+        return None
+    minimal_mutant = cut(mdl, heavy_mutant[0], baseline, bottom_threshold)
+    print(baseline)
+    print(minimal_mutant[0])
+    output["mutant"] = minimal_mutant[0]
+    output["mut_stat"] = (heavy_mutant[1], minimal_mutant[1])
+
+    return output
 
 
 def main(mdl: Classificator):
-    example_inp = [
-        (
-            "term",
-            "MQRGKVKWFNNEKGYG",
-        ),
-        # (
-        #     "mezo",
-        #     "MLEGKVKWFNSEKGFGFIEVEG",
-        # ),
-    ]
-    # MRRGKVVWWNIEKGYG
+    with open(INPUT_PATH, "r") as f:
+        data = json.load(f)
 
-    for baseline in example_inp:
-        heavy_mutant = bulk(mdl, baseline[1], 0.8)
-        if heavy_mutant is None:
-            print(f"protein '{baseline[0]}' cannot be mutate enough")
-            continue
-        minimal_mutant = cut(mdl, heavy_mutant, baseline[1], 0.65)
-        print(baseline[1])
-        print(minimal_mutant)
-    # outputs = mdl.classify(example_inp)
+    output = []
+    for fam_id, fam in data.items():
+        for prot_id, prot in fam.items():
+            if True:  # TODO condition of protein qualities
+                protein = mutate(mdl, prot["domain"])
+                if protein is None:
+                    print(f"protein '{prot_id}' cannot be mutate enough")
+                else:
+                    protein["prot_id"] = prot_id
+                    output.append(protein)
+
+    with open(OUTPUT_PATH, "a") as f:
+        json.dump(output, f, indent=4)
 
 
 if __name__ == "__main__":
     MODEL_PATH = "resources/model-664.pt"  # .pt file
     classificator = Classificator(MODEL_PATH)
 
+    # INPUT_PATH = "datasets/processed_dataset.json"
+    INPUT_PATH = "test_mut_inp.json"
+    OUTPUT_PATH = "test_mutation.json"
+
     main(classificator)
+    # usefull for diff indices
+    # [i for i in range(len(baseline)) if baseline[i] != modified[i]]
