@@ -72,7 +72,7 @@ def print_eta(start_time, current_batch, total_batches):
 
 
 def main():
-    classificator = Classificator(MODEL_PATH)
+    classificator = Classificator()
 
     with open(IN_FILE, "r") as f:
         data = json.load(f)
@@ -112,6 +112,5 @@ def main():
 if __name__ == "__main__":
     # BATCH_SIZE = 32
     BATCH_SIZE = 2
-    MODEL_PATH = "resources/model-664.pt"  # .pt file
     IN_FILE, OUT_FILE = pars_arguments()
     main()

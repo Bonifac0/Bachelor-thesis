@@ -57,8 +57,7 @@ if __name__ == "__main__":
     TORCH_CUDA = "cuda"
     TORCH_CPU = "cpu"
     DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
-    MODEL_PATH = "resources/model-664.pt"  # .pt file
-    classificator = Classificator(MODEL_PATH)
+    classificator = Classificator()
 
     N_STEPS = [50, 40, 30, 20, 10]
 

@@ -157,8 +157,7 @@ def main(mdl: Classificator):
 
 
 if __name__ == "__main__":
-    MODEL_PATH = "resources/model-664.pt"  # .pt file
-    classificator = Classificator(MODEL_PATH)
+    classificator = Classificator()
 
     # INPUT_PATH = "datasets/processed_dataset.json"
     INPUT_PATH = "test_mut_inp.json"

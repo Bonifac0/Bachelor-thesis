@@ -17,7 +17,7 @@ DEVICE = TORCH_CUDA if torch.cuda.is_available() else TORCH_CPU
 
 
 class Classificator:
-    def __init__(self, model_path: str) -> None:
+    def __init__(self, model_path: str = "resources/model-664.pt") -> None:
         self.MODEL_PATH = model_path
         self.model, self.batch_converter = self.prepare_model()
 
@@ -221,8 +221,7 @@ class ModelClassifier(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    MODEL_PATH = "resources/model-664.pt"  # .pt file
-    classificator = Classificator(MODEL_PATH)
+    classificator = Classificator()
 
     example_inp = [
         (
