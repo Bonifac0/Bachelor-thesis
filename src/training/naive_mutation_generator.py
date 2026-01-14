@@ -15,7 +15,7 @@ because pyhon need to load packages
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
 
-def random_single_mutants(sequence: str, n: int = 10) -> list[str]:
+def random_single_mutants(sequence: str, n: int = 50) -> list[str]:
     seen = set()
     mutants = []
 
@@ -142,15 +142,16 @@ def main(mdl: Classificator):
         data = json.load(f)
 
     output = []
-    for fam_id, fam in data.items():
-        for prot_id, prot in fam.items():
-            if True:  # TODO condition of protein qualities
-                protein = mutate(mdl, prot["domain"])
-                if protein is None:
-                    print(f"protein '{prot_id}' cannot be mutate enough")
-                else:
-                    protein["prot_id"] = prot_id
-                    output.append(protein)
+    for _ in range(15):  # repeat to get more mutants
+        for fam_id, fam in data.items():
+            for prot_id, prot in fam.items():
+                if True:  # TODO condition of protein qualities
+                    protein = mutate(mdl, prot["domain"])
+                    if protein is None:
+                        print(f"protein '{prot_id}' cannot be mutate enough")
+                    else:
+                        protein["prot_id"] = prot_id
+                        output.append(protein)
 
     with open(OUTPUT_PATH, "a") as f:
         json.dump(output, f, indent=4)

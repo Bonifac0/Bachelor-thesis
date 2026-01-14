@@ -26,7 +26,7 @@ Transformer Interpretability Beyond Attention Visualization ([source](https://ar
 - `Pfam-A.fasta`: Data of protetin families: [Pfam](https://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/)
 #### Preprocessed datasets
 - `prot_temp.json`: intermediate step in `processed_dataset.json` creation
-- `processed_dataset.json`: useful combination of imput datasets
+- `processed_dataset.json`: useful combination of input datasets
     - created by *src/database_processor/make_database.py*
     - structure:
 ```javascript
