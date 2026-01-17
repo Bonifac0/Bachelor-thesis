@@ -58,6 +58,20 @@ Transformer Interpretability Beyond Attention Visualization ([source](https://ar
 #### Training datasets
 TODO
 
+list of mezophilic (no need for family):
+- prot id
+- original domain (maybe sequence)
+- mutant(s)
+    - one hot vector calculated on fly on training
+
+in secon run add captum values
+- captum 
+
+training
+- batch propably one protein
+- no protein context
+- pair captum 1280 vector to 0/1 from mutants one hot
+
 ## Results
 ### Transformer classificator confusion matrix
 - created by *src/database_processor/create_confusion_matrix.py*

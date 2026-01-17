@@ -3,6 +3,7 @@ from src.heplers.levenshtein import levenshtein
 import numpy as np
 import random
 import json
+import time
 
 
 """
@@ -59,7 +60,7 @@ def bulk(  # TODO OPTIONAL add option to overcome local minimum
     """
     best_mutant = baseline
     best_score: float = mdl.classify([("", baseline)])[0][3]
-    print(f"baseline: {best_score}")
+    # print(f"baseline: {best_score}")
 
     for cycle in range(min(max_cycles, len(baseline))):  # max cycles
         better_mutants = random_single_mutants(best_mutant, batchsize)
@@ -68,7 +69,7 @@ def bulk(  # TODO OPTIONAL add option to overcome local minimum
 
         if props[best_index][3] >= top_threshold:
             num_mutation = levenshtein(best_mutant, baseline)
-            print(f"number of mutations: {num_mutation}")
+            # print(f"number of mutations: {num_mutation}")
             return (best_mutant, num_mutation)
         else:
             if props[best_index][3] > best_score:
@@ -105,7 +106,7 @@ def cut(  # TODO check if work corectlly
         else:
             break
     num_mutation = levenshtein(minimal_mutant, baseline)
-    print(f"final number of mutations: {num_mutation}")
+    # print(f"final number of mutations: {num_mutation}")
     return (minimal_mutant, num_mutation)
 
 
@@ -114,7 +115,7 @@ def mutate(
     baseline: str,
     bottom_threshold: float = 0.8,
     top_threshold: float = 0.9,
-) -> dict | None:
+) -> str | None:
     """
     Create more hyperthermophilic mutant of baseline protein,
     based on given model.
@@ -122,46 +123,91 @@ def mutate(
     Add mutation until top_threshold is reach and than
     least important changes are removed until the bottom_threshold is reached.
     """
-    output: dict = {}
-    output["sequence"] = baseline
 
     heavy_mutant = bulk(mdl, baseline, top_threshold)
     if heavy_mutant is None:
         return None
     minimal_mutant = cut(mdl, heavy_mutant[0], baseline, bottom_threshold)
-    print(baseline)
-    print(minimal_mutant[0])
-    output["mutant"] = minimal_mutant[0]
-    output["mut_stat"] = (heavy_mutant[1], minimal_mutant[1])
+    # print(baseline)
+    # print(minimal_mutant[0])
+    # print(heavy_mutant[1], minimal_mutant[1])
 
-    return output
+    return minimal_mutant[0]
+
+
+def collect_proteins(data: dict) -> list:
+    """
+    Return list of proteins that fit conditions.
+    """
+    dropped = 0
+    protein_list = []
+
+    for fam, entries in data.items():
+        for prot_id, entry in entries.items():
+            if entry["temp"] <= 350:
+                if len(entry["domain"]) > 2000:
+                    dropped += 1
+                    continue
+                prot: dict = {"prot_id": prot_id}
+                prot["domain"] = entry["domain"]
+                protein_list.append(prot)
+
+    print(f"Dropped becaouse domain len: {dropped}")
+    print(f"Collected {len(protein_list)} proteins")
+    return protein_list
+
+
+def print_eta(start_time, current, total):
+    elapsed = time.time() - start_time
+    avg_time = elapsed / current
+    remaining_batches = total - current
+    eta_seconds = remaining_batches * avg_time
+
+    # Format ETA into hh:mm:ss
+    hrs, rem = divmod(int(eta_seconds), 3600)
+    mins, secs = divmod(rem, 60)
+    eta_formatted = f"{hrs:02}:{mins:02}:{secs:02}"
+    return f"| ETA: {eta_formatted}"
 
 
 def main(mdl: Classificator):
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
+    protein_list = collect_proteins(data)
 
-    output = []
-    for _ in range(15):  # repeat to get more mutants
-        for fam_id, fam in data.items():
-            for prot_id, prot in fam.items():
-                if True:  # TODO condition of protein qualities
-                    protein = mutate(mdl, prot["domain"])
-                    if protein is None:
-                        print(f"protein '{prot_id}' cannot be mutate enough")
-                    else:
-                        protein["prot_id"] = prot_id
-                        output.append(protein)
+    protein_count = len(protein_list)
+    start_time = time.time()
+    not_mutated = 0
 
-    with open(OUTPUT_PATH, "a") as f:
-        json.dump(output, f, indent=4)
+    print()
+    print(
+        f"Mutated protein {0}/{protein_count} | Not mutated 0 | ETA: ?",
+        end="\r",
+    )
+    for idx, entery in enumerate(protein_list):
+        mutant = mutate(mdl, entery["domain"])
+        if mutant is not None:
+            entery["mutant"] = mutant
+        else:
+            not_mutated += 1
+
+        print(
+            f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {print_eta(start_time, idx + 1, protein_count)}",
+            end="\r",
+        )
+    print()
+
+    print(f"Not mutated: {not_mutated}")
+
+    with open(OUTPUT_PATH, "w") as f:
+        json.dump(protein_list, f, indent=4)
 
 
 if __name__ == "__main__":
     classificator = Classificator()
 
-    # INPUT_PATH = "datasets/processed_dataset.json"
-    INPUT_PATH = "test_mut_inp.json"
+    INPUT_PATH = "datasets/processed_dataset.json"
+    # INPUT_PATH = "test_mut_inp copy.json"
     OUTPUT_PATH = "test_mutation.json"
 
     main(classificator)
