@@ -1,5 +1,6 @@
 from src.predictor import Classificator
 from src.heplers.levenshtein import levenshtein
+from src.heplers.print_eta import ETA
 import numpy as np
 import random
 import json
@@ -157,26 +158,14 @@ def collect_proteins(data: dict) -> list:
     return protein_list
 
 
-def print_eta(start_time, current, total):
-    elapsed = time.time() - start_time
-    avg_time = elapsed / current
-    remaining_batches = total - current
-    eta_seconds = remaining_batches * avg_time
-
-    # Format ETA into hh:mm:ss
-    hrs, rem = divmod(int(eta_seconds), 3600)
-    mins, secs = divmod(rem, 60)
-    eta_formatted = f"{hrs:02}:{mins:02}:{secs:02}"
-    return f"| ETA: {eta_formatted}"
-
-
 def main(mdl: Classificator):
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
     protein_list = collect_proteins(data)
 
     protein_count = len(protein_list)
-    start_time = time.time()
+    # start_time = time.time()
+    eta = ETA(protein_count)
     not_mutated = 0
 
     print()
@@ -192,7 +181,7 @@ def main(mdl: Classificator):
             not_mutated += 1
 
         print(
-            f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {print_eta(start_time, idx + 1, protein_count)}",
+            f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {eta.print_eta(idx + 1)}",
             end="\r",
         )
     print()
