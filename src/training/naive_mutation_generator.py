@@ -4,7 +4,6 @@ from src.heplers.print_eta import ETA
 import numpy as np
 import random
 import json
-import time
 
 
 """
@@ -145,7 +144,7 @@ def collect_proteins(data: dict) -> list:
 
     for fam, entries in data.items():
         for prot_id, entry in entries.items():
-            if entry["temp"] <= 350:
+            if entry["temp"] <= 35:  # only psy and mezo
                 if len(entry["domain"]) > 2000:
                     dropped += 1
                     continue
@@ -164,19 +163,20 @@ def main(mdl: Classificator):
     protein_list = collect_proteins(data)
 
     protein_count = len(protein_list)
-    # start_time = time.time()
     eta = ETA(protein_count)
     not_mutated = 0
+    output = []
 
     print()
     print(
         f"Mutated protein {0}/{protein_count} | Not mutated 0 | ETA: ?",
         end="\r",
     )
-    for idx, entery in enumerate(protein_list):
-        mutant = mutate(mdl, entery["domain"])
+    for idx, entry in enumerate(protein_list):
+        mutant = mutate(mdl, entry["domain"])
         if mutant is not None:
-            entery["mutant"] = mutant
+            entry["mutant"] = mutant
+            output.append(entry)
         else:
             not_mutated += 1
 
@@ -189,16 +189,14 @@ def main(mdl: Classificator):
     print(f"Not mutated: {not_mutated}")
 
     with open(OUTPUT_PATH, "w") as f:
-        json.dump(protein_list, f, indent=4)
+        json.dump(output, f, indent=4)
 
 
 if __name__ == "__main__":
     classificator = Classificator()
 
-    INPUT_PATH = "datasets/processed_dataset.json"
-    # INPUT_PATH = "test_mut_inp copy.json"
+    # INPUT_PATH = "datasets/processed_dataset.json"
+    INPUT_PATH = "test_mut_inp.json"
     OUTPUT_PATH = "test_mutation.json"
 
     main(classificator)
-    # usefull for diff indices
-    # [i for i in range(len(baseline)) if baseline[i] != modified[i]]
