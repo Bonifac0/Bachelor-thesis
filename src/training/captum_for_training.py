@@ -1,7 +1,6 @@
-from captum.attr import IntegratedGradients
 from src.predictor import Classificator
 from src.heplers.print_eta import ETA
-import torch
+from src.heplers.captum_embedding import get_captum_embedding
 import json
 import numpy as np
 
@@ -12,23 +11,6 @@ python -m src.training.captum_for_training
 
 because pyhon need to load packages
 """
-
-
-def captum(mdl: Classificator, inp: str) -> np.ndarray:
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    ig = IntegratedGradients(mdl.model.forward_embedding)
-
-    _, _, tokens = mdl.batch_converter([("", inp)])
-    embedding = mdl.model.embedding(tokens.to(DEVICE))
-    attr, _ = ig.attribute(
-        embedding,
-        target=3,
-        return_convergence_delta=True,
-        internal_batch_size=12,
-        # n_steps=10,
-    )
-    # print(attr.squeeze(dim=0).shape)
-    return attr.squeeze(dim=0).detach().numpy()[1:-1]
 
 
 def compute_importance(baseline: str, mutant: str) -> np.ndarray:
@@ -57,7 +39,7 @@ def main(mdl: Classificator):
         end="\r",
     )
     for i, entery in enumerate(protein_list):
-        embedding = captum(mdl, entery["domain"])
+        embedding = get_captum_embedding(mdl, entery["domain"])
         n = embedding.shape[0]
         # print(n)
         # print(len(entery["domain"]))
