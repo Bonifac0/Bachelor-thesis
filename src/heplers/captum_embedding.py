@@ -17,7 +17,7 @@ def get_captum_embedding(mdl: Classificator, inp: str) -> np.ndarray:
         embedding,
         target=3,
         return_convergence_delta=True,
-        internal_batch_size=12,
+        internal_batch_size=50,
         # n_steps=10,
     )
     return attr.squeeze(dim=0).detach().numpy()[1:-1]

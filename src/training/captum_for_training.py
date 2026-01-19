@@ -38,29 +38,28 @@ def main(mdl: Classificator):
         f"Processing protein {0}/{protein_count} | ETA: ?",
         end="\r",
     )
-    for i, entery in enumerate(protein_list):
-        embedding = get_captum_embedding(mdl, entery["domain"])
-        n = embedding.shape[0]
-        # print(n)
-        # print(len(entery["domain"]))
+    try:
+        for i, entery in enumerate(protein_list):
+            embedding = get_captum_embedding(mdl, entery["domain"])
+            n = embedding.shape[0]
 
-        X[idx : idx + n] = embedding
-        y[idx : idx + n] = compute_importance(entery["domain"], entery["mutant"])
-        idx += n
+            X[idx : idx + n] = embedding
+            y[idx : idx + n] = compute_importance(entery["domain"], entery["mutant"])
+            idx += n
 
-        print(
-            f"Processing protein {i + 1}/{protein_count} {eta.print_eta(i + 1)}",
-            end="\r",
-        )
-    print()
+            print(
+                f"Processing protein {i + 1}/{protein_count} {eta.print_eta(i + 1)}",
+                end="\r",
+            )
+        print()
 
-    print(X.shape)
-    print(y.shape)
+    finally:
+        print(f"Processed {i}/{len(protein_list)}")
 
 
 if __name__ == "__main__":
     classificator = Classificator()
 
-    INPUT_PATH = "test_mutation.json"
+    INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
     main(classificator)
