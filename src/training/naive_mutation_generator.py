@@ -4,6 +4,7 @@ from src.heplers.print_eta import ETA
 import numpy as np
 import random
 import json
+import time
 
 
 """
@@ -52,7 +53,7 @@ def bulk(  # TODO OPTIONAL add option to overcome local minimum
     baseline: str,
     top_threshold: float = 0.9,
     batchsize: int = 20,
-    max_cycles: int = 20,
+    max_cycles: int = 30,
 ) -> tuple[str, int] | None:
     """
     Adding mutation to move to thermoclass.
@@ -113,9 +114,9 @@ def cut(  # TODO check if work corectlly
 def mutate(
     mdl: Classificator,
     baseline: str,
-    bottom_threshold: float = 0.8,
-    top_threshold: float = 0.9,
-) -> str | None:
+    bottom_threshold: float = 0.75,
+    top_threshold: float = 0.85,
+) -> tuple[str, int, int] | None:
     """
     Create more hyperthermophilic mutant of baseline protein,
     based on given model.
@@ -132,26 +133,40 @@ def mutate(
     # print(minimal_mutant[0])
     # print(heavy_mutant[1], minimal_mutant[1])
 
-    return minimal_mutant[0]
+    return minimal_mutant[0], heavy_mutant[1], minimal_mutant[1]
 
 
-def collect_proteins(data: dict) -> list:
+def collect_proteins(data: dict, offset: str = "") -> list:
     """
     Return list of proteins that fit conditions.
+    Will start collecting after offset (famID_protID),
+    if empty, start from beginning
     """
     dropped = 0
     protein_list = []
+    collect: bool = offset == ""
+    if collect:
+        print("Collecting from beginning")
+    else:
+        offset_fam, offset_prot = offset.split("_")
+        print(f"Collecting after {offset}")
 
     for fam, entries in data.items():
         for prot_id, entry in entries.items():
-            if entry["temp"] <= 35:  # only psy and mezo
-                if len(entry["domain"]) > 2000:
-                    dropped += 1
-                    continue
-                prot: dict = {"prot_id": prot_id}
-                prot["domain"] = entry["domain"]
-                protein_list.append(prot)
+            if collect:
+                if entry["temp"] <= 35:  # only psy and mezo
+                    if len(entry["domain"]) > 500:
+                        dropped += 1
+                        continue
+                    prot: dict = {"prot_id": prot_id}
+                    prot["domain"] = entry["domain"]
+                    protein_list.append(prot)
+            elif fam == offset_fam and prot_id == offset_prot:
+                collect = True
 
+    if not collect:
+        print("Offset protein not found")
+        exit()
     print(f"Dropped becaouse domain len: {dropped}")
     print(f"Collected {len(protein_list)} proteins")
     return protein_list
@@ -160,11 +175,13 @@ def collect_proteins(data: dict) -> list:
 def main(mdl: Classificator):
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
-    protein_list = collect_proteins(data)
+    protein_list = collect_proteins(data, START_AFTER_PROT)
 
     protein_count = len(protein_list)
     eta = ETA(protein_count)
     not_mutated = 0
+    sum_min = 0
+    sum_hev = 0
     output = []
 
     print()
@@ -174,33 +191,45 @@ def main(mdl: Classificator):
     )
     try:
         for idx, entry in enumerate(protein_list):
-            mutant = mutate(mdl, entry["domain"])
-            if mutant is not None:
+            mut_pack = mutate(mdl, entry["domain"])
+            if mut_pack is not None:
+                mutant, st_hev, st_min = mut_pack
                 entry["mutant"] = mutant
                 output.append(entry)
+                sum_hev += st_hev
+                sum_min += st_min
             else:
                 not_mutated += 1
 
             print(
-                f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {eta.print_eta(idx + 1)}",
+                f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} | min:{sum_min / (idx + 1 - not_mutated):.2f} hev:{sum_hev / (idx + 1 - not_mutated):.2f} {eta.print_eta(idx + 1)}",
                 end="\r",
             )
     finally:
         print()
-        print(f"Mutated protein {idx + 1}/{protein_count}")
+        print(f"Mutated protein {idx}/{protein_count}")
 
         print(f"Not mutated: {not_mutated}")
 
-        with open(OUTPUT_PATH, "w") as f:
+        t = time.strftime("%T")
+        with open(
+            f"datasets/mutants{t}_min:{sum_min / (idx + 1 - not_mutated):.2f}_hev:{sum_hev / (idx + 1 - not_mutated):.2f}.json",
+            "w",
+        ) as f:
             json.dump(output, f, indent=4)
 
 
 if __name__ == "__main__":
     classificator = Classificator()
 
-    INPUT_PATH = "test_mut_inp.json"
-    OUTPUT_PATH = "test_mutation.json"
-    # INPUT_PATH = "datasets/processed_dataset.json"
-    # OUTPUT_PATH = "dataset/mutants.json"
+    INPUT_PATH = "datasets/processed_dataset.json"
+    # INPUT_PATH = "test_mut_inp.json"
+    OUTPUT_PATH = "datasets/mutants"  # the stats will be appendet after this
+
+    # everithing before this prot (included) will be scipped
+    # famID_protID
+    # if empty, start from beginning
+    START_AFTER_PROT = "PF00791_A9GXW8"  # for subsequent runs of this script
+    # START_AFTER_PROT = ""
 
     main(classificator)
