@@ -16,7 +16,7 @@ because pyhon need to load packages
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
 
-def random_single_mutants(sequence: str, n: int = 50) -> list[str]:
+def random_single_mutants(sequence: str, n: int) -> list[str]:
     seen = set()
     mutants = []
 
@@ -51,7 +51,7 @@ def bulk(  # TODO OPTIONAL add option to overcome local minimum
     mdl: Classificator,
     baseline: str,
     top_threshold: float = 0.9,
-    batchsize: int = 10,
+    batchsize: int = 20,
     max_cycles: int = 20,
 ) -> tuple[str, int] | None:
     """
@@ -172,31 +172,35 @@ def main(mdl: Classificator):
         f"Mutated protein {0}/{protein_count} | Not mutated 0 | ETA: ?",
         end="\r",
     )
-    for idx, entry in enumerate(protein_list):
-        mutant = mutate(mdl, entry["domain"])
-        if mutant is not None:
-            entry["mutant"] = mutant
-            output.append(entry)
-        else:
-            not_mutated += 1
+    try:
+        for idx, entry in enumerate(protein_list):
+            mutant = mutate(mdl, entry["domain"])
+            if mutant is not None:
+                entry["mutant"] = mutant
+                output.append(entry)
+            else:
+                not_mutated += 1
 
-        print(
-            f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {eta.print_eta(idx + 1)}",
-            end="\r",
-        )
-    print()
+            print(
+                f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} {eta.print_eta(idx + 1)}",
+                end="\r",
+            )
+    finally:
+        print()
+        print(f"Mutated protein {idx + 1}/{protein_count}")
 
-    print(f"Not mutated: {not_mutated}")
+        print(f"Not mutated: {not_mutated}")
 
-    with open(OUTPUT_PATH, "w") as f:
-        json.dump(output, f, indent=4)
+        with open(OUTPUT_PATH, "w") as f:
+            json.dump(output, f, indent=4)
 
 
 if __name__ == "__main__":
     classificator = Classificator()
 
-    # INPUT_PATH = "datasets/processed_dataset.json"
     INPUT_PATH = "test_mut_inp.json"
     OUTPUT_PATH = "test_mutation.json"
+    # INPUT_PATH = "datasets/processed_dataset.json"
+    # OUTPUT_PATH = "dataset/mutants.json"
 
     main(classificator)
