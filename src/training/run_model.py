@@ -3,6 +3,7 @@ import torch.nn as nn
 from src.training.captum_for_training import get_captum_embedding
 from src.predictor import Classificator
 from src.heplers.importance_vis import make_importance_hyperthermo
+import numpy as np
 
 
 """
@@ -49,7 +50,7 @@ model.eval()  # inference mode
 # =========================
 
 
-def predict_importance(mdl: Classificator, seq):
+def predict_importance(mdl: Classificator, seq) -> np.ndarray:
     # Compute embeddings
     emb = get_captum_embedding(mdl, seq)  # (N, 1280)
 
@@ -59,9 +60,10 @@ def predict_importance(mdl: Classificator, seq):
     # Forward pass
     with torch.no_grad():
         logits = model(x)  # shape: (N,)
+        print(logits)
         probs = torch.sigmoid(logits)  # convert to [0,1]
 
-    return probs.cpu().numpy()  # return as numpy array
+    return probs.cpu().numpy()
 
 
 # =========================
@@ -71,13 +73,14 @@ def predict_importance(mdl: Classificator, seq):
 if __name__ == "__main__":
     classificator = Classificator()
 
-    sequence = "MKTFFVAGV"  # your protein sequence
-    importance_scores = predict_importance(classificator, sequence)
+    protein = ("pokus", "MKTFFVAGV")
+
+    importance_scores = predict_importance(classificator, protein[1])
 
     print("Residue\tImportance")
     for i, score in enumerate(importance_scores):
-        print(f"{sequence[i]}\t{score:.4f}")
+        print(f"{protein[1][i]}\t{score:.4f}")
 
-    probability = classificator.classify([("pokus", sequence)])
+    probability = classificator.classify([protein])
     print(probability[0])
-    make_importance_hyperthermo(("pokus", sequence), importance_scores, probability[0])
+    make_importance_hyperthermo(protein, importance_scores, probability[0])

@@ -2,35 +2,26 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+import os
 
 """
 to run:
-python -m src.training.train_classifier
+python -m src.training.train_predictor
 
 because pyhon need to load packages
 """
 
-# =========================
-# Configuration
-# =========================
 
 X_PATH = "X.dat"  # memmap file
 Y_PATH = "y.dat"  # memmap file
-TOTAL_RESIDUES = 809  # change to your value
+TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # works if uint8
 FEATURES = 1280
 
-BATCH_SIZE = 128  # 2048
-EPOCHS = 50
+BATCH_SIZE = 2048
+EPOCHS = 15
 LR = 1e-3
 NUM_WORKERS = 4
 
-# =========================
-# Load data (memmap)
-# =========================
-
-X = np.memmap(X_PATH, dtype=np.float16, mode="r", shape=(TOTAL_RESIDUES, FEATURES))
-
-y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 
 # =========================
 # Dataset
@@ -51,6 +42,8 @@ class ResidueDataset(Dataset):
         return x, y
 
 
+X = np.memmap(X_PATH, dtype=np.float16, mode="r", shape=(TOTAL_RESIDUES, FEATURES))
+y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 dataset = ResidueDataset(X, y)
 
 loader = DataLoader(
@@ -94,28 +87,24 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 # Training loop
 # =========================
 
-for epoch in range(EPOCHS):
-    model.train()
-    running_loss = 0.0
+try:
+    for epoch in range(EPOCHS):
+        model.train()
+        running_loss = 0.0
 
-    for xb, yb in loader:
-        xb = xb.to(device, non_blocking=True)
-        yb = yb.to(device, non_blocking=True)
+        for xb, yb in loader:
+            xb = xb.to(device, non_blocking=True)
+            yb = yb.to(device, non_blocking=True)
 
-        optimizer.zero_grad()
-        logits = model(xb)
-        loss = criterion(logits, yb)
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            logits = model(xb)
+            loss = criterion(logits, yb)
+            loss.backward()
+            optimizer.step()
 
-        running_loss += loss.item()
+            running_loss += loss.item()
 
-    avg_loss = running_loss / len(loader)
-    print(f"Epoch {epoch + 1}/{EPOCHS} | Loss: {avg_loss:.6f}")
-
-# =========================
-# Save model
-# =========================
-
-torch.save(model.state_dict(), "importance_model.pt")
-print("Model saved to importance_model.pt")
+        avg_loss = running_loss / len(loader)
+        print(f"Epoch {epoch + 1}/{EPOCHS} | Loss: {avg_loss:.6f}")
+finally:
+    torch.save(model.state_dict(), "importance_model.pt")
