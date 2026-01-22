@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from src.training.model_definitions import ImportancePredictor, DatasetHandler
+from src.training.predictor_tester import model_tester
 import os
 
 """
@@ -76,11 +77,9 @@ def mean_std(set):
     return mean.astype(np.float32), std.astype(np.float32)
 
 
-print("a")
 mean, std = mean_std(X)
 print(f"Mean:{mean}")
 print(f"Std:{std}")
-print("b")
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -163,18 +162,18 @@ print("Model saved")
 # =========================
 # Testing
 # =========================
+model_tester(model, dataset.test_loader)
+# model.eval()
+# test_loss = 0.0
 
-model.eval()
-test_loss = 0.0
+# with torch.no_grad():
+#     for xb, yb in dataset.test_loader:
+#         xb = xb.to(device, non_blocking=True)
+#         yb = yb.to(device, non_blocking=True)
 
-with torch.no_grad():
-    for xb, yb in dataset.test_loader:
-        xb = xb.to(device, non_blocking=True)
-        yb = yb.to(device, non_blocking=True)
+#         logits = model(xb)
+#         loss = criterion(logits, yb)
+#         test_loss += loss.item()
+# test_loss /= len(dataset.test_loader)
 
-        logits = model(xb)
-        loss = criterion(logits, yb)
-        test_loss += loss.item()
-test_loss /= len(dataset.test_loader)
-
-print(f"Testing loss: {test_loss}")
+# print(f"Testing loss: {test_loss}")
