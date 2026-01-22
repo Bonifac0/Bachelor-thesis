@@ -1,8 +1,6 @@
 import torch
-import torch.nn as nn
 from src.training.captum_for_training import get_captum_embedding
-
-# from src.training.train_predictor import ImportanceModel
+from src.training.model_definitions import ImportancePredictor
 from src.predictor import Classificator
 from src.heplers.importance_vis import make_importance_hyperthermo
 import numpy as np
@@ -29,23 +27,7 @@ FEATURES = 1280
 # =========================
 
 
-class ImportanceModel(nn.Module):
-    def __init__(self, mean, std):
-        super().__init__()
-
-        self.register_buffer("mean", torch.tensor(mean, dtype=torch.float32))
-        self.register_buffer("std", torch.tensor(std, dtype=torch.float32))
-
-        self.norm = nn.LayerNorm(FEATURES)
-        self.linear = nn.Linear(FEATURES, 1)
-
-    def forward(self, x):
-        x = (x - self.mean) / self.std
-        x = self.norm(x)
-        return self.linear(x).squeeze(-1)
-
-
-model = ImportanceModel(mean=np.zeros(FEATURES), std=np.ones(FEATURES))
+model = ImportancePredictor(mean=np.zeros(FEATURES), std=np.ones(FEATURES))
 model.load_state_dict(torch.load("importance_model.pt", map_location=DEVICE))
 model.to(DEVICE)
 model.eval()

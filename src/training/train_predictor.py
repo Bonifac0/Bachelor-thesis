@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, Subset
+from src.training.model_definitions import ImportancePredictor, DatasetHandler
 import os
 
 """
@@ -19,15 +19,11 @@ Y_PATH = "y.dat"
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 FEATURES = 1280
 
-BATCH_SIZE = 2048
 EPOCHS = 50  # upper bound, early stopping will stop earlier
 LR = 1e-2
 WEIGHT_DECAY = 1e-5  # L2 regularization
-NUM_WORKERS = 4
 
-TRAIN_FRAC = 0.8
-VAL_FRAC = 0.1
-TEST_FRAC = 0.1
+DATASET_SPLIT = (0.8, 0.1, 0.1)
 
 PATIENCE = 3
 MIN_DELTA = 1e-3
@@ -37,67 +33,13 @@ MIN_DELTA = 1e-3
 # =========================
 
 
-class ResidueDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __len__(self):
-        return self.X.shape[0]
-
-    def __getitem__(self, idx):
-        x = torch.tensor(self.X[idx], dtype=torch.float32)
-        y = torch.tensor(self.y[idx], dtype=torch.float32)
-        return x, y
-
-
 X = np.memmap(X_PATH, dtype=np.float16, mode="r", shape=(TOTAL_RESIDUES, FEATURES))
 
 y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 
-dataset = ResidueDataset(X, y)
+dataset = DatasetHandler(X, y, DATASET_SPLIT)
 
-# =========================
-# Train / Val / Test split
-# =========================
 
-num_samples = len(dataset)
-indices = np.random.permutation(num_samples)
-
-train_end = int(TRAIN_FRAC * num_samples)
-val_end = train_end + int(VAL_FRAC * num_samples)
-
-train_idx = indices[:train_end]
-val_idx = indices[train_end:val_end]
-test_idx = indices[val_end:]
-
-train_set = Subset(dataset, train_idx)
-val_set = Subset(dataset, val_idx)
-test_set = Subset(dataset, test_idx)
-
-train_loader = DataLoader(
-    train_set,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
-    num_workers=NUM_WORKERS,
-    pin_memory=True,
-)
-
-val_loader = DataLoader(
-    val_set,
-    batch_size=BATCH_SIZE,
-    shuffle=False,
-    num_workers=NUM_WORKERS,
-    pin_memory=True,
-)
-
-test_loader = DataLoader(
-    test_set,
-    batch_size=BATCH_SIZE,
-    shuffle=False,
-    num_workers=NUM_WORKERS,
-    pin_memory=True,
-)
 # =========================
 # Normalizer
 # =========================
@@ -134,39 +76,15 @@ def mean_std(set):
     return mean.astype(np.float32), std.astype(np.float32)
 
 
-# =========================
-# Model
-# =========================
-
-
-class ImportanceModel(nn.Module):
-    def __init__(self, mean, std):
-        super().__init__()
-
-        self.register_buffer("mean", torch.tensor(mean, dtype=torch.float32))
-        self.register_buffer("std", torch.tensor(std, dtype=torch.float32))
-
-        self.norm = nn.LayerNorm(FEATURES)
-        self.linear = nn.Linear(FEATURES, 1)
-
-    def forward(self, x):
-        x = (x - self.mean) / self.std
-        x = self.norm(x)
-        return self.linear(x).squeeze(-1)
-
-
 print("a")
 mean, std = mean_std(X)
-print(mean)
-print(std)
+print(f"Mean:{mean}")
+print(f"Std:{std}")
 print("b")
 
 
-# mean = X.mean(axis=0)
-# std = X.std(axis=0) + 1e-6
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ImportanceModel(mean, std).to(device)
+model = ImportancePredictor(mean, std).to(device)
 
 # =========================
 # Loss (class imbalance)
@@ -196,7 +114,7 @@ for epoch in range(EPOCHS):
     model.train()
     train_loss = 0.0
 
-    for xb, yb in train_loader:
+    for xb, yb in dataset.train_loader:
         xb = xb.to(device, non_blocking=True)
         yb = yb.to(device, non_blocking=True)
 
@@ -208,14 +126,14 @@ for epoch in range(EPOCHS):
 
         train_loss += loss.item()
 
-    train_loss /= len(train_loader)
+    train_loss /= len(dataset.train_loader)
 
     # -------- Validate --------
     model.eval()
     val_loss = 0.0
 
     with torch.no_grad():
-        for xb, yb in val_loader:
+        for xb, yb in dataset.val_loader:
             xb = xb.to(device, non_blocking=True)
             yb = yb.to(device, non_blocking=True)
 
@@ -223,7 +141,7 @@ for epoch in range(EPOCHS):
             loss = criterion(logits, yb)
             val_loss += loss.item()
 
-    val_loss /= len(val_loader)
+    val_loss /= len(dataset.val_loader)
 
     print(f"Epoch {epoch + 1}/{EPOCHS} | Train: {train_loss:.6f} | Val: {val_loss:.6f}")
 
@@ -242,19 +160,21 @@ for epoch in range(EPOCHS):
 torch.save(model.state_dict(), "importance_model.pt")
 print("Model saved")
 
-
+# =========================
 # Testing
+# =========================
+
 model.eval()
 test_loss = 0.0
 
 with torch.no_grad():
-    for xb, yb in test_loader:
+    for xb, yb in dataset.test_loader:
         xb = xb.to(device, non_blocking=True)
         yb = yb.to(device, non_blocking=True)
 
         logits = model(xb)
         loss = criterion(logits, yb)
         test_loss += loss.item()
-test_loss /= len(test_loader)
+test_loss /= len(dataset.test_loader)
 
 print(f"Testing loss: {test_loss}")
