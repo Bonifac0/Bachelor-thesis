@@ -9,9 +9,9 @@ python -m src.training.compile_emb_to_train_data
 
 EMBED_DIM = 1280
 
-DOMAIN_EMB_PATH = "domain_embedding.dat"
-MUTANT_EMB_PATH = "mutant_embedding.dat"
-INPUT_PATH = "test_mutation.json"
+DOMAIN_EMB_PATH = "training_data/domain_embedding.dat"
+MUTANT_EMB_PATH = "training_data/mutant_embedding.dat"
+INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
 OUT_X_PATH = "X.dat"
 OUT_Y_PATH = "y.dat"
@@ -97,10 +97,8 @@ def main():
     X.flush()
     y.flush()
 
-    print("Done.")
     print(f"X shape: {X.shape}")
     print(f"y shape: {y.shape}")
-    print(X)
 
 
 if __name__ == "__main__":

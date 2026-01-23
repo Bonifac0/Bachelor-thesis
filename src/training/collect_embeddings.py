@@ -1,6 +1,6 @@
 from src.predictor import Classificator
-from src.heplers.print_eta import ETA
-from src.heplers.captum_embedding import get_captum_embedding
+from src.helpers.print_eta import ETA
+from src.helpers.captum_embedding import get_captum_embedding
 import json
 import numpy as np
 import os

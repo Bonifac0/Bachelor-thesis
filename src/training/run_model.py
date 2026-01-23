@@ -1,8 +1,8 @@
 import torch
-from src.training.captum_for_training import get_captum_embedding
+from src.helpers.captum_embedding import get_captum_embedding
 from src.training.model_definitions import ImportancePredictor
 from src.predictor import Classificator
-from src.heplers.importance_vis import make_importance_hyperthermo
+from src.helpers.importance_vis import make_importance_hyperthermo
 import numpy as np
 
 
@@ -60,14 +60,24 @@ def predict_importance(mdl: Classificator, seq) -> np.ndarray:
 if __name__ == "__main__":
     classificator = Classificator()
 
-    protein = ("pokus", "MKTFFVAGV")
+    proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
+    cold_shock = [  # 18 GB gpu memory
+        (  # 270MB/aminoacid
+            "term",
+            "MQRGKVKWFNNEKGYGFIEVEGGSDVFVHFTAIQGEGFKTLEEGQEVSFEIVQGNRGPQAANVVKL-",
+        ),
+        (
+            "mezo",
+            "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA",
+        ),
+    ]
+    for protein in cold_shock:
+        importance_scores = predict_importance(classificator, protein[1])
 
-    importance_scores = predict_importance(classificator, protein[1])
+        print("Residue\tImportance")
+        for i, score in enumerate(importance_scores):
+            print(f"{protein[1][i]}\t{score:.4f}")
 
-    print("Residue\tImportance")
-    for i, score in enumerate(importance_scores):
-        print(f"{protein[1][i]}\t{score:.4f}")
-
-    probability = classificator.classify([protein])
-    print(probability[0])
-    make_importance_hyperthermo(protein, importance_scores, probability[0])
+        probability = classificator.classify([protein])
+        print(probability[0])
+        make_importance_hyperthermo(protein, importance_scores, probability[0])

@@ -1,6 +1,6 @@
 from src.predictor import Classificator
-from src.heplers.levenshtein import levenshtein
-from src.heplers.print_eta import ETA
+from src.helpers.levenshtein import levenshtein
+from src.helpers.print_eta import ETA
 import numpy as np
 import random
 import json
