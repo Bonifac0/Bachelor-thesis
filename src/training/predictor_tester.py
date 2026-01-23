@@ -11,6 +11,8 @@ to run:
 python -m src.training.predictor_tester
 """
 
+# maybe obsolete, TODO try wandb.ia
+
 
 def model_tester(model: ImportancePredictor, test_loader):
     PRECI_RECALL_CURVE_FILE = "precision_recall_curve.png"
