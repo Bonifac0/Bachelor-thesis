@@ -27,8 +27,8 @@ FEATURES = 1280
 # =========================
 
 
-model = ImportancePredictor(mean=np.zeros(FEATURES), std=np.ones(FEATURES))
-model.load_state_dict(torch.load("importance_model.pt", map_location=DEVICE))
+model = ImportancePredictor()
+model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.to(DEVICE)
 model.eval()
 
@@ -71,7 +71,17 @@ if __name__ == "__main__":
             "MLEGKVKWFNSEKGFGFIEVEGQDDVFVHFSAIQGEGFKTLEEGQAVSFEIVEGNRGPQAANVTKEA",
         ),
     ]
-    for protein in cold_shock:
+    pokus = [
+        (
+            "domain",
+            "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        ),
+        (
+            "mutant",
+            "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        ),
+    ]
+    for protein in pokus:
         importance_scores = predict_importance(classificator, protein[1])
 
         print("Residue\tImportance")

@@ -21,17 +21,13 @@ class ImportancePredictor(nn.Module):
     The predictor itself
     """
 
-    def __init__(self, mean, std):
+    def __init__(self):
         super().__init__()
-
-        self.register_buffer("mean", torch.tensor(mean, dtype=torch.float32))
-        self.register_buffer("std", torch.tensor(std, dtype=torch.float32))
 
         self.norm = nn.LayerNorm(FEATURES)
         self.linear = nn.Linear(FEATURES, 1)
 
     def forward(self, x):
-        x = (x - self.mean) / self.std
         x = self.norm(x)
         return self.linear(x).squeeze(-1)
 
@@ -60,6 +56,8 @@ class DatasetHandler:
         self.residue_dataset = ResidueDataset(X, y)
         self.num_samples = len(self.residue_dataset)
 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        pin = device.type == "cuda"
         train_set, val_set, test_set = self._prepare_loaders(dataset_split)
 
         self.train_loader = DataLoader(
@@ -67,7 +65,7 @@ class DatasetHandler:
             batch_size=BATCH_SIZE,
             shuffle=True,
             num_workers=NUM_WORKERS,
-            pin_memory=True,
+            pin_memory=pin,
         )
 
         self.val_loader = DataLoader(
@@ -75,7 +73,7 @@ class DatasetHandler:
             batch_size=BATCH_SIZE,
             shuffle=False,
             num_workers=NUM_WORKERS,
-            pin_memory=True,
+            pin_memory=pin,
         )
 
         self.test_loader = DataLoader(
@@ -83,7 +81,7 @@ class DatasetHandler:
             batch_size=BATCH_SIZE,
             shuffle=False,
             num_workers=NUM_WORKERS,
-            pin_memory=True,
+            pin_memory=pin,
         )
 
     def __getitem__(self, idx):

@@ -4,6 +4,8 @@ import torch.nn as nn
 from src.training.model_definitions import ImportancePredictor, DatasetHandler
 from src.training.predictor_tester import model_tester
 import os
+from scipy.special import expit
+from sklearn.metrics import precision_score
 
 """
 to run:
@@ -24,7 +26,7 @@ EPOCHS = 50  # upper bound, early stopping will stop earlier
 LR = 1e-2
 WEIGHT_DECAY = 1e-5  # L2 regularization
 
-DATASET_SPLIT = (0.8, 0.1, 0.1)
+DATASET_SPLIT = (0.6, 0.2, 0.2)
 
 PATIENCE = 3
 MIN_DELTA = 1e-3
@@ -35,70 +37,13 @@ MIN_DELTA = 1e-3
 
 
 X = np.memmap(X_PATH, dtype=np.float16, mode="r", shape=(TOTAL_RESIDUES, FEATURES))
-
 y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
-
 dataset = DatasetHandler(X, y, DATASET_SPLIT)
 
-
-# =========================
-# Normalizer
-# =========================
-
-
-def mean_std(set):
-    CHUNK_SIZE = 10_000
-
-    mean = np.zeros(FEATURES, dtype=np.float64)
-    M2 = np.zeros(FEATURES, dtype=np.float64)
-    count = 0
-
-    for start in range(0, TOTAL_RESIDUES, CHUNK_SIZE):
-        end = min(start + CHUNK_SIZE, TOTAL_RESIDUES)
-        chunk = set[start:end].astype(np.float64)
-
-        chunk_count = chunk.shape[0]
-        chunk_mean = chunk.mean(axis=0)
-        chunk_var = chunk.var(axis=0)
-
-        delta = chunk_mean - mean
-        new_count = count + chunk_count
-
-        mean += delta * chunk_count / new_count
-        M2 += chunk_var * chunk_count + (delta**2) * count * chunk_count / new_count
-
-        count = new_count
-
-        if start % (CHUNK_SIZE * 10) == 0:
-            print(f"Processed {count} residues")
-
-    std = np.sqrt(M2 / count) + 1e-6
-
-    return mean.astype(np.float32), std.astype(np.float32)
-
-
-mean, std = mean_std(X)
-print(f"Mean:{mean}")
-print(f"Std:{std}")
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ImportancePredictor(mean, std).to(device)
+model = ImportancePredictor().to(device)
 
-# =========================
-# Loss (class imbalance)
-# =========================
-
-pos = y.sum()
-neg = y.shape[0] - pos
-pos_weight = neg / max(pos, 1)
-
-criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight, device=device))
-
-# =========================
-# Optimizer (L2 regularization)
-# =========================
-
+criterion = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
 # =========================
@@ -107,6 +52,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECA
 
 best_val_loss = float("inf")
 patience_counter = 0
+
 
 for epoch in range(EPOCHS):
     # -------- Train --------
@@ -131,6 +77,9 @@ for epoch in range(EPOCHS):
     model.eval()
     val_loss = 0.0
 
+    all_logits = []
+    all_labels = []
+
     with torch.no_grad():
         for xb, yb in dataset.val_loader:
             xb = xb.to(device, non_blocking=True)
@@ -140,9 +89,20 @@ for epoch in range(EPOCHS):
             loss = criterion(logits, yb)
             val_loss += loss.item()
 
+            all_logits.append(logits.cpu())
+            all_labels.append(yb.cpu())
+
     val_loss /= len(dataset.val_loader)
 
-    print(f"Epoch {epoch + 1}/{EPOCHS} | Train: {train_loss:.6f} | Val: {val_loss:.6f}")
+    all_logits = torch.cat(all_logits).numpy().ravel()
+    all_labels = torch.cat(all_labels).numpy().ravel()
+
+    probs = expit(all_logits)
+    y_pred = (probs >= 0.5).astype(int)
+
+    val_precision = precision_score(all_labels, y_pred, zero_division=0)
+
+    print(f"Epoch {epoch + 1}/{EPOCHS} | Val Precision: {val_precision:.4f}")
 
     # -------- Early stopping --------
     if val_loss < best_val_loss - MIN_DELTA:
@@ -159,21 +119,37 @@ for epoch in range(EPOCHS):
 torch.save(model.state_dict(), "importance_model.pt")
 print("Model saved")
 
+# model_tester(model, dataset.test_loader)
 # =========================
 # Testing
 # =========================
-model_tester(model, dataset.test_loader)
-# model.eval()
-# test_loss = 0.0
+model.eval()
+test_loss = 0.0
 
-# with torch.no_grad():
-#     for xb, yb in dataset.test_loader:
-#         xb = xb.to(device, non_blocking=True)
-#         yb = yb.to(device, non_blocking=True)
+all_logits = []
+all_labels = []
 
-#         logits = model(xb)
-#         loss = criterion(logits, yb)
-#         test_loss += loss.item()
-# test_loss /= len(dataset.test_loader)
+with torch.no_grad():
+    for xb, yb in dataset.test_loader:
+        xb = xb.to(device, non_blocking=True)
+        yb = yb.to(device, non_blocking=True)
 
-# print(f"Testing loss: {test_loss}")
+        logits = model(xb)
+        loss = criterion(logits, yb)
+
+        test_loss += loss.item()
+
+        all_logits.append(logits.cpu())
+        all_labels.append(yb.cpu())
+
+test_loss /= len(dataset.test_loader)
+
+all_logits = torch.cat(all_logits).numpy().ravel()
+all_labels = torch.cat(all_labels).numpy().ravel()
+
+probs = expit(all_logits)
+y_pred = (probs >= 0.5).astype(int)
+
+test_precision = precision_score(all_labels, y_pred, zero_division=0)
+
+print(f"Testing loss: {test_loss:.6f} | Testing precision: {test_precision:.4f}")
