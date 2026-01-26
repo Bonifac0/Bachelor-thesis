@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from src.training.model_definitions import ImportancePredictor, DatasetHandler
-from src.training.predictor_tester import model_tester
 import os
 from scipy.special import expit
 from sklearn.metrics import precision_score
@@ -16,8 +15,8 @@ python -m src.training.train_predictor
 # Configuration
 # =========================
 
-X_PATH = "X.dat"
-Y_PATH = "y.dat"
+X_PATH = "training_data/X.dat"
+Y_PATH = "training_data/y.dat"
 
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 FEATURES = 1280
@@ -29,7 +28,7 @@ WEIGHT_DECAY = 1e-5  # L2 regularization
 DATASET_SPLIT = (0.6, 0.2, 0.2)
 
 PATIENCE = 3
-MIN_DELTA = 1e-3
+MIN_DELTA = 1e-4
 
 # =========================
 # Dataset
@@ -119,7 +118,6 @@ for epoch in range(EPOCHS):
 torch.save(model.state_dict(), "importance_model.pt")
 print("Model saved")
 
-# model_tester(model, dataset.test_loader)
 # =========================
 # Testing
 # =========================
