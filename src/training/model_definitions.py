@@ -11,7 +11,7 @@ run_model.py
 predictor_tester.py
 """
 
-FEATURES = 1280
+FEATURES = 1280 * 4
 BATCH_SIZE = 2048
 NUM_WORKERS = 4  # how it reads from disk
 

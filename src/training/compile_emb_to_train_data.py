@@ -7,7 +7,7 @@ python -m src.training.compile_emb_to_train_data
 """
 
 
-EMBED_DIM = 1280
+EMBED_DIM = 1280 * 4
 
 DOMAIN_EMB_PATH = "training_data/domain_embedding.dat"
 MUTANT_EMB_PATH = "training_data/mutant_embedding.dat"
