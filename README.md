@@ -56,27 +56,48 @@ Transformer Interpretability Beyond Attention Visualization ([source](https://ar
 ```
 
 #### Training datasets
-TODO
+- `mutants_min:13.71_hev:15.82.json`: list of protein domain and coresponding mutant (hyperthermophilic)
+    - created by *src/training/naive_mutation_generator.py*
+    - based on data in `processed_dataset.json`, takes only psychrophilic and mesophilic under length 500
+    - average number of mutations is 13.71 (15.82 before cutting)
+    - structure:
+```javascript
+[
+    {
+        "prot_id": "A0A1M6DL67",
+        "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG"
+    }
+]
+```
 
-list of mezophilic (no need for family):
-- prot id
-- original domain (maybe sequence)
-- mutant(s)
-    - one hot vector calculated on fly on training
+- `all_domain_embedding.dat`: saved importance embedding from `mutants_min:13.71_hev:15.82.json` using Captum
+    - created by *src/training/collect_embeddings.py* with *--mode domain* flag
+    - saved tensor as numpy memmap
+    - contein embeding for each residue (letter) to each class
+    - shape: (number of residues, 1280 * 4 classes)
 
-in secon run add captum values
-- captum 
+- `all_mutant_embedding.dat`: same as `all_domain_embedding.dat`, just for mutants
+    - created by *src/training/collect_embeddings.py* with *--mode mutant* flag
 
-training
-- batch propably one protein
-- no protein context
-- pair captum 1280 vector to 0/1 from mutants one hot
+- `X.dat` and `y.dat`: data for importance predictor training
+    - created by *src/training/compile_emb_to_train_data.py*
+    - input (2 * len(diff), 1280 * 4) and target (2 * len(diff), 1) (alternating 0 and 1)
+    - for each residue that differ (domain vs mutant) has pair:
+        - domain residue importance embedding - 0
+        - mutant residue importance embedding - 1
+
+    ![creation diagram](resources/embedding_compilation.svg)
+
 
 ## Results
 ### Transformer classificator confusion matrix
 - created by *src/database_processor/create_confusion_matrix.py*
 
 Whole sequences classification:
+
 ![Thermal Class Confusion Matrix](resources/class_confusion_matrix.png)
+
 Domains classification:
+
 ![Thermal Class Confusion Matrix](resources/class_confusion_matrix_domains.png)
