@@ -91,8 +91,9 @@ class DatasetHandler:
         return x, y
 
     def _prepare_loaders(self, dataset_split: tuple[float, float, float]):
-        assert sum(dataset_split) == 1
-        indices = np.random.permutation(self.num_samples)
+        assert np.isclose(sum(dataset_split), 1.0)
+
+        indices = np.arange(self.num_samples)
 
         train_end = int(dataset_split[0] * self.num_samples)
         val_end = train_end + int(dataset_split[1] * self.num_samples)
