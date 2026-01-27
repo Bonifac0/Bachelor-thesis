@@ -19,16 +19,6 @@ python -m src.training.collect_embeddings --mode domain --input-path test_mutati
 FEATURES = 1280 * 4
 
 
-def compute_importance(baseline: str, mutant: str) -> np.ndarray:
-    """
-    Return [0,1,...] vector where these to differ
-    """
-    assert len(baseline) == len(mutant)
-    return np.fromiter(
-        (b != m for b, m in zip(baseline, mutant)), dtype=np.uint8, count=len(baseline)
-    )
-
-
 def collect_embeddings(mdl: Classificator, mode: str, input_path: str):
     """
     Collect embeddings for proteins using captum
