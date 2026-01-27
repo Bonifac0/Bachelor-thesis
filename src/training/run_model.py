@@ -19,7 +19,9 @@ because pyhon need to load packages
 
 MODEL_PATH = "importance_model.pt"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-FEATURES = 1280 * 4
+
+# FEATURES = 1280  # for one class
+FEATURES = 1280 * 4  # for all classes
 
 
 # =========================

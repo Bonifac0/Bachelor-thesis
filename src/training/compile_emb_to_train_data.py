@@ -6,8 +6,8 @@ to run:
 python -m src.training.compile_emb_to_train_data
 """
 
-
-EMBED_DIM = 1280 * 4
+# FEATURES = 1280  # for one class
+FEATURES = 1280 * 4  # for all classes
 
 DOMAIN_EMB_PATH = "training_data/domain_embedding.dat"
 MUTANT_EMB_PATH = "training_data/mutant_embedding.dat"
@@ -36,14 +36,14 @@ def main():
         DOMAIN_EMB_PATH,
         dtype=np.float16,
         mode="r",
-        shape=(total_residues, EMBED_DIM),
+        shape=(total_residues, FEATURES),
     )
 
     mutant_emb = np.memmap(
         MUTANT_EMB_PATH,
         dtype=np.float16,
         mode="r",
-        shape=(total_residues, EMBED_DIM),
+        shape=(total_residues, FEATURES),
     )
 
     # count total differing residues
@@ -58,7 +58,7 @@ def main():
         OUT_X_PATH,
         dtype=np.float16,
         mode="w+",
-        shape=(total_samples, EMBED_DIM),
+        shape=(total_samples, FEATURES),
     )
 
     y = np.memmap(

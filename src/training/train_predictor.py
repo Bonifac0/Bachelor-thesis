@@ -19,7 +19,8 @@ X_PATH = "training_data/X.dat"
 Y_PATH = "training_data/y.dat"
 
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
-FEATURES = 1280 * 4
+# FEATURES = 1280  # for one class
+FEATURES = 1280 * 4  # for all classes
 
 EPOCHS = 50  # upper bound, early stopping will stop earlier
 LR = 1e-2

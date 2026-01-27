@@ -16,7 +16,8 @@ for testing
 python -m src.training.collect_embeddings --mode domain --input-path test_mutation.json
 """
 
-FEATURES = 1280 * 4
+FEATURES = 1280  # for one class
+# FEATURES = 1280 * 4  # for all classes
 
 
 def collect_embeddings(mdl: Classificator, mode: str, input_path: str):
