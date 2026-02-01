@@ -43,10 +43,7 @@ def get_captum_embedding(mdl: Classificator, inp: str) -> np.ndarray:
     """
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-    print("aaa")
     ig = IntegratedGradients(mdl.model.forward_embedding)
-
-    print("bbb")
 
     _, _, tokens = mdl.batch_converter([("", inp)])
     embedding = mdl.model.embedding(tokens.to(DEVICE))
