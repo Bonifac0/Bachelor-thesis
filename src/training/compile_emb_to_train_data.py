@@ -9,12 +9,13 @@ python -m src.training.compile_emb_to_train_data
 # FEATURES = 1280  # for one class
 FEATURES = 1280 * 4  # for all classes
 
-DOMAIN_EMB_PATH = "training_data/domain_embedding.dat"
-MUTANT_EMB_PATH = "training_data/mutant_embedding.dat"
+MODE = "combine_1280+4"
+DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
+MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
-OUT_X_PATH = "X.dat"
-OUT_Y_PATH = "y.dat"
+OUT_X_PATH = f"training_data/{MODE}/X.dat"
+OUT_Y_PATH = f"training_data/{MODE}/y.dat"
 
 
 def compute_difference_mask(domain: str, mutant: str) -> np.ndarray:
