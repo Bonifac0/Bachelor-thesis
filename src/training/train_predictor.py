@@ -5,6 +5,7 @@ from src.training.model_definitions import ImportancePredictor, DatasetHandler
 import os
 from scipy.special import expit
 from sklearn.metrics import precision_score
+import wandb
 
 """
 to run:
@@ -23,13 +24,31 @@ Y_PATH = f"training_data/{MODE}/y.dat"
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
 EPOCHS = 50  # upper bound
-LR = 1e-2
+LR = 5e-3
 WEIGHT_DECAY = 1e-5  # L2 regularization
 
 DATASET_SPLIT = (0.6, 0.2, 0.2)
 
 PATIENCE = 3
-MIN_DELTA = 1e-5
+MIN_DELTA = 1e-6
+
+wandb.init(
+    project="importance-predictor",
+    name=f"{MODE}_lr{LR}",
+    config={
+        "mode": MODE,
+        "epochs": EPOCHS,
+        "learning_rate": LR,
+        "weight_decay": WEIGHT_DECAY,
+        "dataset_split": DATASET_SPLIT,
+        "patience": PATIENCE,
+        "min_delta": MIN_DELTA,
+        "model": "ImportancePredictor",
+        "features": ImportancePredictor.FEATURES,
+    },
+)
+
+config = wandb.config
 
 # =========================
 # Dataset
@@ -103,7 +122,20 @@ for epoch in range(EPOCHS):
 
     val_precision = precision_score(all_labels, y_pred, zero_division=0)
 
-    print(f"Epoch {epoch + 1}/{EPOCHS} | Val Precision: {val_precision:.4f}")
+    wandb.log(
+        {
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "val_precision": val_precision,
+        }
+    )
+    print(
+        f"Epoch {epoch + 1}/{EPOCHS} | "
+        f"Train Loss: {train_loss:.6f} | "
+        f"Val Loss: {val_loss:.6f} | "
+        f"Val Precision: {val_precision:.4f}"
+    )
 
     # -------- Early stopping --------
     if val_loss < best_val_loss - MIN_DELTA:
@@ -111,14 +143,31 @@ for epoch in range(EPOCHS):
         patience_counter = 0
     else:
         patience_counter += 1
+        wandb.log({"early_stop_counter": patience_counter})
         print(f"  No improvement ({patience_counter}/{PATIENCE})")
 
         if patience_counter >= PATIENCE:
+            wandb.log({"early_stopped": True, "stopped_epoch": epoch + 1})
             print("Early stopping triggered")
             break
 
-torch.save(model.state_dict(), "importance_model.pt")
-print("Model saved")
+
+model_path = "importance_model.pt"
+torch.save(model.state_dict(), model_path)
+
+artifact = wandb.Artifact(
+    name="importance_model",
+    type="model",
+    metadata={
+        "mode": MODE,
+        "best_val_loss": best_val_loss,
+    },
+)
+artifact.add_file(model_path)
+wandb.log_artifact(artifact)
+
+print("Model saved and logged to W&B")
+
 
 # =========================
 # Testing
@@ -152,4 +201,12 @@ y_pred = (probs >= 0.5).astype(int)
 
 test_precision = precision_score(all_labels, y_pred, zero_division=0)
 
+wandb.log(
+    {
+        "test_loss": test_loss,
+        "test_precision": test_precision,
+    }
+)
+
 print(f"Testing loss: {test_loss:.6f} | Testing precision: {test_precision:.4f}")
+wandb.finish()
