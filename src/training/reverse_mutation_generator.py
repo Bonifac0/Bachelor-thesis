@@ -145,10 +145,10 @@ def main(mdl: Classificator):
     output = []
 
     print()
-    # print(
-    #     f"Mutated protein {0}/{protein_count} | Not mutated 0 | ETA: ?",
-    #     end="\r",
-    # )
+    print(
+        f"Mutated protein {0}/{protein_count} | Not mutated 0 | ETA: ?",
+        end="\r",
+    )
     try:
         for idx, entry in enumerate(protein_list):
             mut_pack = reverse_mutate(mdl, entry["original_hyper"])
@@ -161,10 +161,10 @@ def main(mdl: Classificator):
             else:
                 not_mutated += 1
 
-            # print(
-            #     f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} | min:{sum_min / (idx + 1 - not_mutated):.2f} hev:{sum_hev / (idx + 1 - not_mutated):.2f} {eta.print_eta(idx + 1)}",
-            #     end="\r",
-            # )
+            print(
+                f"Mutated protein {idx + 1}/{protein_count} | Not mutated {not_mutated} | min:{sum_min / (idx + 1 - not_mutated):.2f} hev:{sum_hev / (idx + 1 - not_mutated):.2f} {eta.print_eta(idx + 1)}",
+                end="\r",
+            )
         idx += 1
     finally:
         print()
