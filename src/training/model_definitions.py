@@ -11,22 +11,20 @@ run_model.py
 predictor_tester.py
 """
 
-FEATURES = 1280  # for one class
-# FEATURES = 1280 * 4  # for all classes
-BATCH_SIZE = 2048
-NUM_WORKERS = 4  # how it reads from disk
-
 
 class ImportancePredictor(nn.Module):
     """
     The predictor itself
     """
 
+    FEATURES = 1280  # for one class
+    # FEATURES = 1280 * 4  # for all classes
+
     def __init__(self):
         super().__init__()
 
-        self.norm = nn.LayerNorm(FEATURES)
-        self.linear = nn.Linear(FEATURES, 1)
+        self.norm = nn.LayerNorm(self.FEATURES)
+        self.linear = nn.Linear(self.FEATURES, 1)
 
     def forward(self, x):
         x = self.norm(x)
@@ -53,6 +51,9 @@ class DatasetHandler:
     Wraper for ResidueDataset and loaders
     """
 
+    BATCH_SIZE = 2048
+    NUM_WORKERS = 4  # how it reads from disk
+
     def __init__(self, X, y, dataset_split: tuple[float, float, float]):
         self.residue_dataset = ResidueDataset(X, y)
         self.num_samples = len(self.residue_dataset)
@@ -63,25 +64,25 @@ class DatasetHandler:
 
         self.train_loader = DataLoader(
             train_set,
-            batch_size=BATCH_SIZE,
+            batch_size=self.BATCH_SIZE,
             shuffle=True,
-            num_workers=NUM_WORKERS,
+            num_workers=self.NUM_WORKERS,
             pin_memory=pin,
         )
 
         self.val_loader = DataLoader(
             val_set,
-            batch_size=BATCH_SIZE,
+            batch_size=self.BATCH_SIZE,
             shuffle=False,
-            num_workers=NUM_WORKERS,
+            num_workers=self.NUM_WORKERS,
             pin_memory=pin,
         )
 
         self.test_loader = DataLoader(
             test_set,
-            batch_size=BATCH_SIZE,
+            batch_size=self.BATCH_SIZE,
             shuffle=False,
-            num_workers=NUM_WORKERS,
+            num_workers=self.NUM_WORKERS,
             pin_memory=pin,
         )
 

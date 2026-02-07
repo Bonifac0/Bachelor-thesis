@@ -14,15 +14,15 @@ python -m src.training.train_predictor
 # =========================
 # Configuration
 # =========================
+# The model configuration in src/training/model_definiotion.py
 
-X_PATH = "training_data/X.dat"
-Y_PATH = "training_data/y.dat"
+MODE = "basic_1280"
+X_PATH = f"training_data/{MODE}/X.dat"
+Y_PATH = f"training_data/{MODE}/y.dat"
 
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
-FEATURES = 1280  # for one class
-# FEATURES = 1280 * 4  # for all classes
 
-EPOCHS = 50  # upper bound, early stopping will stop earlier
+EPOCHS = 50  # upper bound
 LR = 1e-2
 WEIGHT_DECAY = 1e-5  # L2 regularization
 
@@ -36,7 +36,12 @@ MIN_DELTA = 1e-5
 # =========================
 
 
-X = np.memmap(X_PATH, dtype=np.float16, mode="r", shape=(TOTAL_RESIDUES, FEATURES))
+X = np.memmap(
+    X_PATH,
+    dtype=np.float16,
+    mode="r",
+    shape=(TOTAL_RESIDUES, ImportancePredictor.FEATURES),
+)
 y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 dataset = DatasetHandler(X, y, DATASET_SPLIT)
 
@@ -45,10 +50,6 @@ model = ImportancePredictor().to(device)
 
 criterion = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-
-# =========================
-# Training with Early Stopping
-# =========================
 
 best_val_loss = float("inf")
 patience_counter = 0
