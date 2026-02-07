@@ -44,8 +44,16 @@ if __name__ == "__main__":
     classificator = Classificator()
     runner = ModelRunner(classificator)
 
-    domain = ("DOM", "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG")
-    mutant = ("MUT", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")
+    # domain = ("DOM", "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG")
+    # mutant = ("MUT", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")
+    domain = (
+        "DOM_LONG",
+        "ALRTHTEKDCYTPGGWRPGDEVLVPDEIADDDVETRYGESIGDQFPHFIGSSTRGTIDFRRWAEGSWVVFFSQPGTFSSVCTTEMGMFVRDQELFEERGIKLIALAKEDLGEQQSWLREIERLYGARVDFPSVEDPTGMLSTAFGMTTDREIAPEPARITFIMDPHRVIRMI",
+    )
+    mutant = (
+        "MUT_LONG",
+        "ALRTHTEKCCYTPGGWRCGDWVLVPDEIADDDVETRYGESIGDTFPHFIGVSTRGTIWFRRWAEGSWVVFFSQPGTFSSVCTFEMMMFVRDVELFEERGIKLIALAKEDLGEQQSWLREIERLYGARVDFPSVEDYTGMLSTAFGMTTYRVIYPEPARITFIMDPHRVIRMI",
+    )
     assert len(domain[1]) == len(mutant[1])
     domain_score = classificator.classify([domain])[0][3]
     mutant_score = classificator.classify([mutant])[0][3]
@@ -59,6 +67,7 @@ if __name__ == "__main__":
 
     counter = 0
     indices.append(-1)
+
     data = []
     print(indices)
     for idx, mut in enumerate(mutant[1]):

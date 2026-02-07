@@ -48,7 +48,7 @@ def single_revert(baseline: str, modified: str) -> list[str]:
     return variants
 
 
-def bulk(  # TODO OPTIONAL add option to overcome local minimum
+def bulk(
     mdl: Classificator,
     baseline: str,
     top_threshold: float = 0.9,
@@ -85,7 +85,7 @@ def bulk(  # TODO OPTIONAL add option to overcome local minimum
     return None  # isnt possible to mutate enough
 
 
-def cut(  # TODO check if work corectlly
+def cut(
     mdl: Classificator,
     heavy_mutant: str,
     baseline: str,
@@ -129,21 +129,18 @@ def mutate(
     if heavy_mutant is None:
         return None
     minimal_mutant = cut(mdl, heavy_mutant[0], baseline, bottom_threshold)
-    # print(baseline)
-    # print(minimal_mutant[0])
-    # print(heavy_mutant[1], minimal_mutant[1])
 
     return minimal_mutant[0], heavy_mutant[1], minimal_mutant[1]
 
 
-def collect_proteins(data: dict, offset: str = "") -> list:
+def collect_proteins(data: dict, offset: str = "") -> list[dict]:
     """
     Return list of proteins that fit conditions.
     Will start collecting after offset (famID_protID),
     if empty, start from beginning
     """
     dropped = 0
-    protein_list = []
+    protein_list: list[dict] = []
     collect: bool = offset == ""
     if collect:
         print("Collecting from beginning")
