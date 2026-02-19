@@ -1,4 +1,5 @@
 import matplotlib
+import numpy as np
 
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
@@ -144,5 +145,106 @@ def make_importance_hyperthermo_compare(
     plt.savefig(f"test_importance/{protein[0]}_hyperthermo_compare.png")
 
 
+def make_importance_general(
+    protein: dict,
+    data: np.ndarray,  # shape (P, N)
+    probability: tuple[float, float],
+    labels: list[str],  # length P
+    outdir: str = "test_importance",
+):
+    domain = protein["domain"]
+    mutant = protein["mutant"]
+    prot_id = protein["prot_id"]
+
+    assert len(domain) == len(mutant), "Domain and mutant must have same length"
+    P, N = data.shape
+    assert P == len(labels), "labels length must match number of features (P)"
+
+    x = np.arange(N)
+    total_width = 0.8
+    bar_width = total_width / P
+
+    fig, ax = plt.subplots(figsize=(max(10, N * 0.35), 6))
+
+    fig.suptitle(
+        f"Feature importance comparison for protein {prot_id}",
+        fontsize=16,
+    )
+
+    # Plot bars
+    for i in range(P):
+        offsets = x - total_width / 2 + i * bar_width + bar_width / 2
+        ax.bar(
+            offsets,
+            data[i],
+            width=bar_width,
+            label=labels[i],
+        )
+
+    # X-axis labels with domain / mutant letters
+    xtick_labels = []
+    for d, m in zip(domain, mutant):
+        if d == m:
+            xtick_labels.append(d)
+        else:
+            xtick_labels.append(f"{d}\n{m}")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(xtick_labels)
+    ax.set_xlabel("Amino Acid Position")
+
+    ax.set_ylabel("Feature value")
+
+    ax.set_title(
+        f"Domain score: {probability[0]:.2f} | Mutant score: {probability[1]:.2f}"
+    )
+
+    ax.legend(ncols=min(P, 4))
+    ax.set_ylim(0, np.max(data) * 1.2)
+
+    plt.tight_layout()
+    plt.savefig(f"{outdir}/{prot_id}_domain_mutant_compare.png")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
-    pass
+    # pass
+
+    # Provided protein
+    protein = {
+        "prot_id": "A0A1M6DL67",
+        "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+    }
+
+    N = len(protein["domain"])
+    P = 5
+
+    # Reproducibility
+    rng = np.random.default_rng(42)
+
+    # Synthetic feature data: shape (P, N)
+    data = rng.uniform(0.0, 1.0, size=(P, N))
+
+    # Optional: emphasize differences where domain != mutant
+    for i, (d, m) in enumerate(zip(protein["domain"], protein["mutant"])):
+        if d != m:
+            data[:, i] += rng.uniform(0.3, 0.7, size=P)
+
+    # Feature labels
+    labels = [
+        "Hydrophobicity",
+        "Charge",
+        "Volume",
+        "Flexibility",
+        "Conservation",
+    ]
+
+    # Synthetic probabilities
+    probability = (
+        float(rng.uniform(0.6, 0.9)),  # domain score
+        float(rng.uniform(0.6, 0.9)),  # mutant score
+    )
+    print(data)
+
+    make_importance_general(protein, data, probability, labels)
