@@ -3,6 +3,7 @@ from src.predictor import Classificator
 from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
+from src.helpers.captum_embedding import get_captum_embedding
 import numpy as np
 
 
@@ -134,6 +135,16 @@ def use_chaotic_mutations(
     return real_score
 
 
+def aggregate_embedding(ig_embedding: np.ndarray) -> np.ndarray:
+    """
+    L1 aggregation for an Integrated Gradients embedding attribution.
+    """
+    # TODO read https://arxiv.org/html/2507.18043v1?utm_source=chatgpt.com
+    # source acording to chatbot
+
+    return np.abs(ig_embedding).sum(axis=-1)
+
+
 if __name__ == "__main__":
     classificator = Classificator()
     runner = ModelRunner(classificator)
@@ -163,15 +174,20 @@ if __name__ == "__main__":
             classificator, protein["mutant"], probability[1], 2
         )
 
-        N = len(protein["domain"])
-        rng = np.random.default_rng(42)
-        placeholder = rng.uniform(0.0, 1.0, size=(N,))
+        mut_embedding = get_captum_embedding(classificator, protein["mutant"])
+        dom_embedding = get_captum_embedding(classificator, protein["domain"])
 
-        # print(pred_dom.shape)
-        # print(real_decrease.shape)
-        # print(placeholder.shape)
+        mut_cap_importance = aggregate_embedding(mut_embedding)
+        dom_cap_importance = aggregate_embedding(dom_embedding)
+
         data = np.row_stack(
-            [pred_mut, pred_dom, placeholder, placeholder, real_decrease]
+            [
+                pred_mut,
+                pred_dom,
+                mut_cap_importance,
+                dom_cap_importance,
+                real_decrease,
+            ]
         )
 
         # print(data.shape)  # (34, 5)
