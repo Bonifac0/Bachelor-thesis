@@ -1,6 +1,6 @@
 import random
 from src.predictor import Classificator
-from src.helpers.importance_vis import make_importance_hyperthermo_compare
+from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
 import numpy as np
@@ -96,9 +96,11 @@ def use_reverse_mutation(classificator, baseline, baseline_score):
     return real_score
 
 
-def use_chaotic_mutations(classificator, baseline, baseline_score):
+def use_chaotic_mutations(
+    classificator, baseline, baseline_score, iterations=50
+) -> np.ndarray:
     percetage = 0.1
-    mutations = generate_random_mutations(baseline, percetage, 50)
+    mutations = generate_random_mutations(baseline, percetage, iterations)
     data = []
     for random_mutant in mutations:
         if single_revert is None:
@@ -113,7 +115,7 @@ def use_chaotic_mutations(classificator, baseline, baseline_score):
         indices.append(-1)
 
         single_data = []
-        print(indices)
+        # print(indices)
         for idx, mut in enumerate(baseline):
             if idx == indices[counter]:
                 score = (
@@ -127,8 +129,8 @@ def use_chaotic_mutations(classificator, baseline, baseline_score):
         data.append(single_data)
 
     real_score = np.mean(data, axis=0)
-    print()
-    print(real_score)
+    # print()
+    # print(real_score)
     return real_score
 
 
@@ -136,18 +138,50 @@ if __name__ == "__main__":
     classificator = Classificator()
     runner = ModelRunner(classificator)
 
-    hypertermo = (
-        "MUT",
-        "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-    )
+    proteins = [
+        {
+            "prot_id": "alice",
+            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        },
+        {
+            "prot_id": "bob",
+            "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
+            "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
+        },
+    ]
+    for protein in proteins:
+        probability = (
+            classificator.classify([("", protein["domain"])])[0][3],
+            classificator.classify([("", protein["mutant"])])[0][3],
+        )
 
-    hyperthermo_score = classificator.classify([hypertermo])[0][3]
-    print(f"Hyperthermo: {hyperthermo_score}")
-    predicted = runner.predict_importance(hypertermo[1])
+        pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
+        pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
-    # real_score = use_reverse_mutation(classificator, hypertermo[1], hyperthermo_score)
-    real_score = use_chaotic_mutations(classificator, hypertermo[1], hyperthermo_score)
+        real_decrease: np.ndarray = use_chaotic_mutations(
+            classificator, protein["mutant"], probability[1], 2
+        )
 
-    make_importance_hyperthermo_compare(
-        hypertermo, predicted, real_score, hyperthermo_score
-    )
+        N = len(protein["domain"])
+        rng = np.random.default_rng(42)
+        placeholder = rng.uniform(0.0, 1.0, size=(N,))
+
+        # print(pred_dom.shape)
+        # print(real_decrease.shape)
+        # print(placeholder.shape)
+        data = np.row_stack(
+            [pred_mut, pred_dom, placeholder, placeholder, real_decrease]
+        )
+
+        # print(data.shape)  # (34, 5)
+
+        labels = [
+            "Predictor mutant",
+            "Predictor domain",
+            "Captum mutant",
+            "Captum domain",
+            "Real decrease",
+        ]
+
+        make_importance_general(protein, data, probability, labels)
