@@ -3,9 +3,10 @@ import torch
 import torch.nn as nn
 from src.training.model_definitions import ImportancePredictor, DatasetHandler
 import os
-from scipy.special import expit
-from sklearn.metrics import precision_score
 import wandb
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+from scipy.special import expit  # for sigmoid
+from datetime import datetime
 
 """
 to run:
@@ -24,17 +25,18 @@ Y_PATH = f"training_data/{MODE}/y.dat"
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
 EPOCHS = 50  # upper bound
-LR = 5e-3
+LR = 1e-2
 WEIGHT_DECAY = 1e-5  # L2 regularization
 
 DATASET_SPLIT = (0.6, 0.2, 0.2)
 
 PATIENCE = 3
 MIN_DELTA = 1e-6
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 wandb.init(
     project="importance-predictor",
-    name=f"{MODE}_lr{LR}",
+    name=f"{MODE}_{timestamp}",
     config={
         "mode": MODE,
         "epochs": EPOCHS,
@@ -74,8 +76,43 @@ best_val_loss = float("inf")
 patience_counter = 0
 
 
+def evaluate_model(model, dataloader, criterion, device):
+    """Evaluate model on a dataset and return loss and metrics."""
+    model.eval()
+    total_loss = 0.0
+    all_logits, all_labels = [], []
+
+    with torch.no_grad():
+        for xb, yb in dataloader:
+            xb = xb.to(device, non_blocking=True)
+            yb = yb.to(device, non_blocking=True)
+
+            logits = model(xb)
+            loss = criterion(logits, yb)
+            total_loss += loss.item()
+
+            all_logits.append(logits.cpu())
+            all_labels.append(yb.cpu())
+
+    total_loss /= len(dataloader)
+    all_logits = torch.cat(all_logits).numpy().ravel()
+    all_labels = torch.cat(all_labels).numpy().ravel()
+
+    probs = expit(all_logits)
+    y_pred = (probs >= 0.5).astype(int)
+
+    metrics = {
+        "precision": precision_score(all_labels, y_pred, zero_division=0),
+        "recall": recall_score(all_labels, y_pred, zero_division=0),
+        "f1": f1_score(all_labels, y_pred, zero_division=0),
+        "accuracy": accuracy_score(all_labels, y_pred),
+    }
+
+    return total_loss, metrics
+
+
+# -------- Training loop --------
 for epoch in range(EPOCHS):
-    # -------- Train --------
     model.train()
     train_loss = 0.0
 
@@ -93,65 +130,45 @@ for epoch in range(EPOCHS):
 
     train_loss /= len(dataset.train_loader)
 
-    # -------- Validate --------
-    model.eval()
-    val_loss = 0.0
+    # Validation
+    val_loss, val_metrics = evaluate_model(model, dataset.val_loader, criterion, device)
 
-    all_logits = []
-    all_labels = []
-
-    with torch.no_grad():
-        for xb, yb in dataset.val_loader:
-            xb = xb.to(device, non_blocking=True)
-            yb = yb.to(device, non_blocking=True)
-
-            logits = model(xb)
-            loss = criterion(logits, yb)
-            val_loss += loss.item()
-
-            all_logits.append(logits.cpu())
-            all_labels.append(yb.cpu())
-
-    val_loss /= len(dataset.val_loader)
-
-    all_logits = torch.cat(all_logits).numpy().ravel()
-    all_labels = torch.cat(all_labels).numpy().ravel()
-
-    probs = expit(all_logits)
-    y_pred = (probs >= 0.5).astype(int)
-
-    val_precision = precision_score(all_labels, y_pred, zero_division=0)
-
+    # Log everything to W&B
     wandb.log(
         {
             "epoch": epoch + 1,
             "train_loss": train_loss,
             "val_loss": val_loss,
-            "val_precision": val_precision,
+            "val_precision": val_metrics["precision"],
+            "val_recall": val_metrics["recall"],
+            "val_f1": val_metrics["f1"],
+            "val_accuracy": val_metrics["accuracy"],
         }
     )
+
     print(
         f"Epoch {epoch + 1}/{EPOCHS} | "
         f"Train Loss: {train_loss:.6f} | "
         f"Val Loss: {val_loss:.6f} | "
-        f"Val Precision: {val_precision:.4f}"
+        f"Val Precision: {val_metrics['precision']:.4f} | "
+        f"Recall: {val_metrics['recall']:.4f} | "
+        f"F1: {val_metrics['f1']:.4f} | "
+        f"Accuracy: {val_metrics['accuracy']:.4f}"
     )
 
-    # -------- Early stopping --------
+    # Early stopping
     if val_loss < best_val_loss - MIN_DELTA:
         best_val_loss = val_loss
         patience_counter = 0
     else:
         patience_counter += 1
-        wandb.log({"early_stop_counter": patience_counter})
         print(f"  No improvement ({patience_counter}/{PATIENCE})")
 
         if patience_counter >= PATIENCE:
-            wandb.log({"early_stopped": True, "stopped_epoch": epoch + 1})
             print("Early stopping triggered")
             break
 
-
+# Save model
 model_path = "importance_model.pt"
 torch.save(model.state_dict(), model_path)
 
@@ -165,48 +182,26 @@ artifact = wandb.Artifact(
 )
 artifact.add_file(model_path)
 wandb.log_artifact(artifact)
-
 print("Model saved and logged to W&B")
 
-
-# =========================
-# Testing
-# =========================
-model.eval()
-test_loss = 0.0
-
-all_logits = []
-all_labels = []
-
-with torch.no_grad():
-    for xb, yb in dataset.test_loader:
-        xb = xb.to(device, non_blocking=True)
-        yb = yb.to(device, non_blocking=True)
-
-        logits = model(xb)
-        loss = criterion(logits, yb)
-
-        test_loss += loss.item()
-
-        all_logits.append(logits.cpu())
-        all_labels.append(yb.cpu())
-
-test_loss /= len(dataset.test_loader)
-
-all_logits = torch.cat(all_logits).numpy().ravel()
-all_labels = torch.cat(all_labels).numpy().ravel()
-
-probs = expit(all_logits)
-y_pred = (probs >= 0.5).astype(int)
-
-test_precision = precision_score(all_labels, y_pred, zero_division=0)
+# -------- Testing --------
+test_loss, test_metrics = evaluate_model(model, dataset.test_loader, criterion, device)
 
 wandb.log(
     {
         "test_loss": test_loss,
-        "test_precision": test_precision,
+        "test_precision": test_metrics["precision"],
+        "test_recall": test_metrics["recall"],
+        "test_f1": test_metrics["f1"],
+        "test_accuracy": test_metrics["accuracy"],
     }
 )
 
-print(f"Testing loss: {test_loss:.6f} | Testing precision: {test_precision:.4f}")
+print(
+    f"Testing loss: {test_loss:.6f} | "
+    f"Precision: {test_metrics['precision']:.4f} | "
+    f"Recall: {test_metrics['recall']:.4f} | "
+    f"F1: {test_metrics['f1']:.4f} | "
+    f"Accuracy: {test_metrics['accuracy']:.4f}"
+)
 wandb.finish()
