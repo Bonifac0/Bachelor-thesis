@@ -135,14 +135,15 @@ def use_chaotic_mutations(
     return real_score
 
 
-def aggregate_embedding(ig_embedding: np.ndarray) -> np.ndarray:
+def aggregate_embedding(ig_embedding: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     """
     L1 aggregation for an Integrated Gradients embedding attribution.
     """
     # TODO read https://arxiv.org/html/2507.18043v1?utm_source=chatgpt.com
     # source acording to chatbot
 
-    return np.abs(ig_embedding).sum(axis=-1)
+    l1 = np.abs(ig_embedding).sum(axis=-1)
+    return l1 / (l1.max() + eps)
 
 
 if __name__ == "__main__":
@@ -190,14 +191,35 @@ if __name__ == "__main__":
             ]
         )
 
-        # print(data.shape)  # (34, 5)
-
         labels = [
             "Predictor mutant",
             "Predictor domain",
-            "Captum mutant",
-            "Captum domain",
+            "Captum relative mutant",
+            "Captum relative domain",
             "Real decrease",
         ]
 
-        make_importance_general(protein, data, probability, labels)
+        make_importance_general(
+            protein, data, probability, labels, outdir="test_importance/full"
+        )
+
+        data_only_mut = np.row_stack(
+            [
+                pred_mut,
+                mut_cap_importance,
+                real_decrease,
+            ]
+        )
+
+        labels_only_mut = [
+            "Predictor mutant",
+            "Captum relative mutant",
+            "Real decrease",
+        ]
+        make_importance_general(
+            protein,
+            data_only_mut,
+            probability,
+            labels_only_mut,
+            outdir="test_importance/only_mut",
+        )
