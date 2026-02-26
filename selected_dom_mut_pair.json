@@ -1,0 +1,197 @@
+[
+    {
+        "prot_id": "A0A1M6DL67",
+        "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG"
+    },
+    {
+        "prot_id": "A0A1X6YLE1",
+        "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
+        "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA"
+    },
+    {
+        "prot_id": "A0A3D8PGV0",
+        "domain": "ALDGGRLSAAMLDVTDPEPLPADHWAWRDPRVLITPHIA",
+        "mutant": "YLDGGRLSAAMLDVTDPEPLPWDHWAIRDPRVLITPHIA"
+    },
+    {
+        "prot_id": "A0A5B8VP42",
+        "domain": "MKDRQIVASNIMKVTLSCDHRVVVVASGSTLLQALLSY",
+        "mutant": "MKDRWIVASNIYKVTLSCDRRVVVVASGSTLLEALLSY"
+    },
+    {
+        "prot_id": "A0A1J4NNI5",
+        "domain": "EAEFGINEWVVDEQRQRWLRDPGSVDRTWREFFASP",
+        "mutant": "EAEFGINEWVVKEQRYRWLRGPGSVMRTWREFFASP"
+    },
+    {
+        "prot_id": "A0A239XNL5",
+        "domain": "KDLQVWQKAMVLVTEIYRLSENFPESEKFGLKSQIRRV",
+        "mutant": "KDLRVWQKAMELVTEIYRLSENFPESFKRGLKSQIRRV"
+    },
+    {
+        "prot_id": "A0A1G7HNA4",
+        "domain": "KDLEVWKKAIDLVTDIYNLSASFPTEEKYGLTN",
+        "mutant": "KDLEVWKKAADLVEDIVNLVASFPTPEKMGKTN"
+    },
+    {
+        "prot_id": "A0A6M1T539",
+        "domain": "MSIPSNIAEGYGQNSNNEFNRFLKVFMGSLFEL",
+        "mutant": "MPIPSNIPEGYGVNSINLFNRALKVFMGSLFVL"
+    },
+    {
+        "prot_id": "A0A160N161",
+        "domain": "MQPQPDLLVLFPSWMWHGTLPFRGEPQDRHLTIAFD",
+        "mutant": "MEPNPDLLVLTPSWMYMGTLPFRGEPSDRELTIAFS"
+    },
+    {
+        "prot_id": "A0A7W6D4T4",
+        "domain": "MGRALIADGGAPRQCGWLVDRYGFPWQVF",
+        "mutant": "MGRALIAWGGPPRVCGWLVIRYGFPWEVF"
+    },
+    {
+        "prot_id": "A0A5N7MCM8",
+        "domain": "MSLMNGGGSSQRCGWITDRYGVSWQIM",
+        "mutant": "MSLYNPGGSSSRYGWITIRVGVSWEIM"
+    },
+    {
+        "prot_id": "A0A0P9EL63",
+        "domain": "PDLHTKLKIYAASRGTTMVEVIEELLRK",
+        "mutant": "PYLVTKLKIYAASRGTTMVEVIEELLRK"
+    },
+    {
+        "prot_id": "A0A2P7S0F2",
+        "domain": "IAALERAHEIRKFEIELYWKRATYFWILHGAVFTAIGV",
+        "mutant": "IAALERAHEIRKFEIELYWKRAWYFWILHGAVFTAIGV"
+    },
+    {
+        "prot_id": "A0A1H0MKH4",
+        "domain": "AVLFGPPGTGKTLFAKALARIVRRAAPVALGRRLAG",
+        "mutant": "AVLFGPPGTGKTLFAKALAEIVRRAAPVALGRRLAG"
+    },
+    {
+        "prot_id": "A0A975B399",
+        "domain": "PYGIADYEELVRDNCYFVDKTQYIEIVPKQIFCN",
+        "mutant": "PYGIADYEELVRYNCYWVPKTQYIAIVPKEIFCN"
+    },
+    {
+        "prot_id": "A0A8J8ME54",
+        "domain": "MIRNFTFENFKSFDKTTLDIEQLTIMVGANASGKTVIS",
+        "mutant": "MILTITFENFKSFDKLTLDIEYLRIMVGENASGKTVIS"
+    },
+    {
+        "prot_id": "A0A7W3TEP9",
+        "domain": "RRWVVTGTGTGVGKTVVTAALAAAWCGAGRRVTV",
+        "mutant": "RRVVVTGTGTGVGKTVVTAALAAAWYYAGRRVTV"
+    },
+    {
+        "prot_id": "A0A2T0BKA3",
+        "domain": "KGVFIVGTDTDVGKTIVTAGLIHVLRSNGL",
+        "mutant": "KGVVIVGTDTDVGKTIVTAGLIHVLRSMGL"
+    },
+    {
+        "prot_id": "A0A916T3H2",
+        "domain": "MARVLITGMSGAGKTTLLDALARR",
+        "mutant": "MYMVLIYGMSGAGKTTLLDALARR"
+    },
+    {
+        "prot_id": "A0A918CSX8",
+        "domain": "LRGLDLAVRQGTVCGLLGPNGAGKTTPYAC",
+        "mutant": "LRGTYLSVRWGTVKGLLGPNGAGKTTPYAC"
+    },
+    {
+        "prot_id": "A0A2K8NSZ3",
+        "domain": "IEKYNFSITNGDRILIYGKNGSGKTTLLNLINEMLIAKK",
+        "mutant": "IEKYNELITNGGRILIYGPNGSGKTTLLNLINEMLIAKK"
+    },
+    {
+        "prot_id": "A0A371JI90",
+        "domain": "MKHLLIKGEIVGLIGKNGAGKSTFVSCFSI",
+        "mutant": "MGELYIKGEIVGLIGKGGAGKSTFVFCTSI"
+    },
+    {
+        "prot_id": "A0A8J3E028",
+        "domain": "LKDIDFELPTGARIVVCGPSGSGKSTLIRCVKRA",
+        "mutant": "LKDEDFELPTGARIVVKGPSGSLKSTLIRCVKRA"
+    },
+    {
+        "prot_id": "A0A2T0RMW3",
+        "domain": "LDYVDLELRQGEFLAIVGDNGAGKSTLV",
+        "mutant": "LDYVDLELRCYEFLAIVGDNGAGKSTLV"
+    },
+    {
+        "prot_id": "A0A2Z2KV75",
+        "domain": "MSTGQWQRLAISRSFVREADVMVFDEPTA",
+        "mutant": "MGRGVWQRLAVYISFVREFDVGVFDEPTY"
+    },
+    {
+        "prot_id": "A0A562V0J3",
+        "domain": "LAGTLSGGQQQMVAIARALMGQPKIMLTDEPSL",
+        "mutant": "LAGTLSGGQLEMVAIALALMGFPKIALTDEPSL"
+    },
+    {
+        "prot_id": "A0A8J8SFS3",
+        "domain": "MGPSGSGKTTLLQILGLLDEATTGCLSIDGISVSHI",
+        "mutant": "MGPKGSGKTYLLWILGLLDEATTCCASIDGIRVSHI"
+    },
+    {
+        "prot_id": "A0A2K8P211",
+        "domain": "MLKFKELSFGQKQRLRFAVALIKPFSILILDEVLT",
+        "mutant": "MLKFEELSFGQKQRLREAVALIYGVSILILDEVLT"
+    },
+    {
+        "prot_id": "A0A7W8A0D8",
+        "domain": "MRHRPHELSGGQKQREAIARAVAGEPDLLLATNPPA",
+        "mutant": "MRIRPHELSGGYKQMEAIARAVAGEPKLVLATNPPA"
+    },
+    {
+        "prot_id": "A0A2L2XAB4",
+        "domain": "MGRRGECLSGGQGQAVALVRALLANPLILALDEATS",
+        "mutant": "MGRRGECLSLGAVQAVKLVRALLANPLILALDEATS"
+    },
+    {
+        "prot_id": "A0A1H9BYH5",
+        "domain": "LRDPSLHLSRGEVLGLVGESGSGKSLTALPERKMRA",
+        "mutant": "LRDPSLVLFRGVVLGLVGERGSGKSYTALPERKMRA"
+    },
+    {
+        "prot_id": "A0A290QA57",
+        "domain": "MKRRLVELSGGQRQRVAMGRAVVRDPALFLFDEPLS",
+        "mutant": "MKYRLVELSGGLRRRVARLRAVVRGPYLFLFDEPLS"
+    },
+    {
+        "prot_id": "A0A1G7C4I1",
+        "domain": "LKDISFSFHEGEFASIMGKSGSGKFTLLYILSIMDT",
+        "mutant": "LGGIEFSFKEGEFAFIYGKRGSGKTTLLYILSIMDT"
+    },
+    {
+        "prot_id": "A0A7W7VPP0",
+        "domain": "VPVLGIEAGEFVTVVGPPGTGKSTLMNCLSGIDT",
+        "mutant": "VPVLGIEAGEYVTVVGPPGTGKSLLMNCLSLIDT"
+    },
+    {
+        "prot_id": "A0A7W3TE70",
+        "domain": "TLEGEGHGAYTGGNPCVVATVDAHLLSGVTPRDGTVC",
+        "mutant": "TLEGEGDGAYTGLNPCVVATVMAHLLSGVTPRWGTVC"
+    },
+    {
+        "prot_id": "A0A919P6M4",
+        "domain": "APVTADDARASGLAGEDLRRAERAGSLVRVGRGA",
+        "mutant": "APVTADDARASGLVGEDLRRAERVGSLVVVGRGK"
+    },
+    {
+        "prot_id": "A0A543I514",
+        "domain": "HTHGLIRSRDLLSLGLSSHRIHQHIAQGELIRVRQGVLI",
+        "mutant": "HTHGLIRSYDLLSLGLSYIRIHMHIAPQELIRVRQGVLI"
+    },
+    {
+        "prot_id": "A0A1G7XJJ0",
+        "domain": "LASELRDAGVHPRDITAALERGDILRAARGVYVTP",
+        "mutant": "LASFLRMVGVHPRDITAALERGDILRAARLVYVTP"
+    },
+    {
+        "prot_id": "A0A7H2BE82",
+        "domain": "TTAELSQLGISASTIYRRVERGRLIKLRHGVYV",
+        "mutant": "FTEILSRLGISASTIYRWVERGRLIKLRHGVYV"
+    }
+]

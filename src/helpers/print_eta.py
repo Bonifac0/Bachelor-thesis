@@ -17,3 +17,9 @@ class ETA:
         mins, secs = divmod(rem, 60)
         eta_formatted = f"{hrs:02}:{mins:02}:{secs:02}"
         return f"| ETA: {eta_formatted}"
+
+    def print_elapsed(self) -> None:
+        elapsed = time.time() - self.start_time
+        hrs, rem = divmod(int(elapsed), 3600)
+        mins, secs = divmod(rem, 60)
+        print(f"Time elapsed: {hrs:02}:{mins:02}:{secs:02}")

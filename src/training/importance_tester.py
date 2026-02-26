@@ -4,7 +4,9 @@ from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
 from src.helpers.captum_embedding import get_captum_embedding
+from src.helpers.print_eta import ETA
 import numpy as np
+import json
 
 
 """
@@ -150,19 +152,30 @@ if __name__ == "__main__":
     classificator = Classificator()
     runner = ModelRunner(classificator)
 
-    proteins = [
-        {
-            "prot_id": "alice",
-            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
-            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-        },
-        {
-            "prot_id": "bob",
-            "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
-            "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
-        },
-    ]
-    for protein in proteins:
+    # proteins = [
+    #     {
+    #         "prot_id": "alice",
+    #         "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+    #         "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+    #     },
+    #     {
+    #         "prot_id": "bob",
+    #         "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
+    #         "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
+    #     },
+    # ]
+    with open("selected_dom_mut_pair.json", "r") as f:
+        proteins = json.load(f)
+
+    protein_count = len(proteins)
+    eta = ETA(protein_count)
+    print()
+    print(
+        f"Tested protein {0}/{protein_count} | ETA: ?",
+        end="\r",
+    )
+
+    for idx, protein in enumerate(proteins):
         probability = (
             classificator.classify([("", protein["domain"])])[0][3],
             classificator.classify([("", protein["mutant"])])[0][3],
@@ -172,7 +185,7 @@ if __name__ == "__main__":
         pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
         real_decrease: np.ndarray = use_chaotic_mutations(
-            classificator, protein["mutant"], probability[1], 2
+            classificator, protein["mutant"], probability[1]
         )
 
         mut_embedding = get_captum_embedding(classificator, protein["mutant"])
@@ -223,3 +236,10 @@ if __name__ == "__main__":
             labels_only_mut,
             outdir="test_importance/only_mut",
         )
+
+        print(
+            f"Tested protein {idx + 1}/{protein_count} {eta.print_eta(idx + 1)}",
+            end="\r",
+        )
+    print()
+    eta.print_elapsed()
