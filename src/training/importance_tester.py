@@ -152,20 +152,20 @@ if __name__ == "__main__":
     classificator = Classificator()
     runner = ModelRunner(classificator)
 
-    # proteins = [
-    #     {
-    #         "prot_id": "alice",
-    #         "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
-    #         "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-    #     },
-    #     {
-    #         "prot_id": "bob",
-    #         "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
-    #         "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
-    #     },
-    # ]
-    with open("selected_dom_mut_pair.json", "r") as f:
-        proteins = json.load(f)
+    proteins = [
+        {
+            "prot_id": "alice",
+            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        },
+        {
+            "prot_id": "bob",
+            "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
+            "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
+        },
+    ]
+    # with open("selected_dom_mut_pair.json", "r") as f:
+    #     proteins = json.load(f)
 
     protein_count = len(proteins)
     eta = ETA(protein_count)
@@ -184,9 +184,9 @@ if __name__ == "__main__":
         pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
         pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
-        real_decrease: np.ndarray = use_chaotic_mutations(
-            classificator, protein["mutant"], probability[1]
-        )
+        # real_decrease: np.ndarray = use_chaotic_mutations(
+        #     classificator, protein["mutant"], probability[1]
+        # )
 
         mut_embedding = get_captum_embedding(classificator, protein["mutant"])
         dom_embedding = get_captum_embedding(classificator, protein["domain"])
@@ -200,7 +200,7 @@ if __name__ == "__main__":
                 pred_dom,
                 mut_cap_importance,
                 dom_cap_importance,
-                real_decrease,
+                # real_decrease,
             ]
         )
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
             "Predictor domain",
             "Captum relative mutant",
             "Captum relative domain",
-            "Real decrease",
+            # "Real decrease",
         ]
 
         make_importance_general(
@@ -220,14 +220,14 @@ if __name__ == "__main__":
             [
                 pred_mut,
                 mut_cap_importance,
-                real_decrease,
+                # real_decrease,
             ]
         )
 
         labels_only_mut = [
             "Predictor mutant",
             "Captum relative mutant",
-            "Real decrease",
+            # "Real decrease",
         ]
         make_importance_general(
             protein,
