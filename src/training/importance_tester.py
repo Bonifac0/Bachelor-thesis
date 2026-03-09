@@ -5,6 +5,7 @@ from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import numpy as np
 import json
 
@@ -175,6 +176,9 @@ if __name__ == "__main__":
         end="\r",
     )
 
+    y_true_all = []
+    y_pred_all = []
+
     for idx, protein in enumerate(proteins):
         probability = (
             classificator.classify([("", protein["domain"])])[0][3],
@@ -184,22 +188,36 @@ if __name__ == "__main__":
         pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
         pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
+        # Ground truth: 1 if domain and mutant differ at this position, 0 otherwise
+        y_true = [
+            1 if d != m else 0
+            for d, m in zip(protein["domain"], protein["mutant"])
+        ]
+        # Prediction: 1 if pred_mut > 0.5 and pred_dom < 0.5, 0 otherwise
+        y_pred = [
+            1 if pm > 0.5 and pd < 0.5 else 0
+            for pm, pd in zip(pred_mut, pred_dom)
+        ]
+
+        y_true_all.extend(y_true)
+        y_pred_all.extend(y_pred)
+
         # real_decrease: np.ndarray = use_chaotic_mutations(
         #     classificator, protein["mutant"], probability[1]
         # )
 
-        mut_embedding = get_captum_embedding(classificator, protein["mutant"])
-        dom_embedding = get_captum_embedding(classificator, protein["domain"])
+        # mut_embedding = get_captum_embedding(classificator, protein["mutant"])
+        # dom_embedding = get_captum_embedding(classificator, protein["domain"])
 
-        mut_cap_importance = aggregate_embedding(mut_embedding)
-        dom_cap_importance = aggregate_embedding(dom_embedding)
+        # mut_cap_importance = aggregate_embedding(mut_embedding)
+        # dom_cap_importance = aggregate_embedding(dom_embedding)
 
         data = np.row_stack(
             [
                 pred_mut,
                 pred_dom,
-                mut_cap_importance,
-                dom_cap_importance,
+                # mut_cap_importance,
+                # dom_cap_importance,
                 # real_decrease,
             ]
         )
@@ -207,8 +225,8 @@ if __name__ == "__main__":
         labels = [
             "Predictor mutant",
             "Predictor domain",
-            "Captum relative mutant",
-            "Captum relative domain",
+            # "Captum relative mutant",
+            # "Captum relative domain",
             # "Real decrease",
         ]
 
@@ -216,26 +234,26 @@ if __name__ == "__main__":
             protein, data, probability, labels, outdir="test_importance/full"
         )
 
-        data_only_mut = np.row_stack(
-            [
-                pred_mut,
-                mut_cap_importance,
-                # real_decrease,
-            ]
-        )
+        # data_only_mut = np.row_stack(
+        #     [
+        #         pred_mut,
+        #         mut_cap_importance,
+        #         # real_decrease,
+        #     ]
+        # )
 
-        labels_only_mut = [
-            "Predictor mutant",
-            "Captum relative mutant",
-            # "Real decrease",
-        ]
-        make_importance_general(
-            protein,
-            data_only_mut,
-            probability,
-            labels_only_mut,
-            outdir="test_importance/only_mut",
-        )
+        # labels_only_mut = [
+        #     "Predictor mutant",
+        #     "Captum relative mutant",
+        #     # "Real decrease",
+        # ]
+        # make_importance_general(
+        #     protein,
+        #     data_only_mut,
+        #     probability,
+        #     labels_only_mut,
+        #     outdir="test_importance/only_mut",
+        # )
 
         print(
             f"Tested protein {idx + 1}/{protein_count} {eta.print_eta(idx + 1)}",
@@ -243,3 +261,9 @@ if __name__ == "__main__":
         )
     print()
     eta.print_elapsed()
+
+    print("\nMetrics (mutation site detection):")
+    print(f"Accuracy:  {accuracy_score(y_true_all, y_pred_all):.4f}")
+    print(f"Precision: {precision_score(y_true_all, y_pred_all, zero_division=0):.4f}")
+    print(f"Recall:    {recall_score(y_true_all, y_pred_all, zero_division=0):.4f}")
+    print(f"F1 Score:  {f1_score(y_true_all, y_pred_all, zero_division=0):.4f}")
