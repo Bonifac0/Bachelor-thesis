@@ -199,8 +199,9 @@ def make_importance_general(
         f"Domain score: {probability[0]:.2f} | Mutant score: {probability[1]:.2f}"
     )
 
+    ax.axhline(0.5, color="red", linestyle="--", alpha=0.5)
     ax.legend(ncols=min(P, 5))
-    ax.set_ylim(0, np.max(data) * 1.2)
+    ax.set_ylim(0, max(1.0, np.max(data) * 1.2))
 
     plt.tight_layout()
     plt.savefig(f"{outdir}/{prot_id}_compare.png")
