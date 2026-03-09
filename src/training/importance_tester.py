@@ -5,7 +5,8 @@ from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+
+# from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import numpy as np
 import json
 
@@ -154,15 +155,20 @@ if __name__ == "__main__":
     runner = ModelRunner(classificator)
 
     proteins = [
+        # {
+        #     "prot_id": "alice",
+        #     "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        #     "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        # },
+        # {
+        #     "prot_id": "bob",
+        #     "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
+        #     "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
+        # },
         {
-            "prot_id": "alice",
-            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
-            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-        },
-        {
-            "prot_id": "bob",
-            "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
-            "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
+            "prot_id": "A0A4R3J6H1",
+            "domain": "REIRKTFQVALENHKSGVPLTWRDKKTGAATTVTPVLTYKAASGAFCRTYRQSITLNGKTHLYPGVACRESRLKWVIPRLAQLVGNTSRFTVINHVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYAPEIGQYVRREDYYKYPGKTY",
+            "mutant": "REIRKTFQVALENHKSGVPLTWRDKKTGAYTTVTFVLTYKARSGAFCRTYRYSITLNGKTYLYRGVACRESRLKWVIPRLAQLVGNTSRFTVINVVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYACEIGQYVRREDYYKYPGKTY",
         },
     ]
     # with open("selected_dom_mut_pair.json", "r") as f:
@@ -176,8 +182,8 @@ if __name__ == "__main__":
         end="\r",
     )
 
-    y_true_all = []
-    y_pred_all = []
+    counter_all = 0
+    counter_correct = 0
 
     for idx, protein in enumerate(proteins):
         probability = (
@@ -188,19 +194,15 @@ if __name__ == "__main__":
         pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
         pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
-        # Ground truth: 1 if domain and mutant differ at this position, 0 otherwise
-        y_true = [
-            1 if d != m else 0
-            for d, m in zip(protein["domain"], protein["mutant"])
-        ]
-        # Prediction: 1 if pred_mut > 0.5 and pred_dom < 0.5, 0 otherwise
-        y_pred = [
-            1 if pm > 0.5 and pd < 0.5 else 0
-            for pm, pd in zip(pred_mut, pred_dom)
+        difference = [
+            1 if d != m else 0 for d, m in zip(protein["domain"], protein["mutant"])
         ]
 
-        y_true_all.extend(y_true)
-        y_pred_all.extend(y_pred)
+        for j, (d, m) in enumerate(zip(protein["domain"], protein["mutant"])):
+            if d != m:
+                counter_all += 1
+                if pred_dom[j] < 0.5 and pred_mut[j] > 0.5:
+                    counter_correct += 1
 
         # real_decrease: np.ndarray = use_chaotic_mutations(
         #     classificator, protein["mutant"], probability[1]
@@ -261,9 +263,4 @@ if __name__ == "__main__":
         )
     print()
     eta.print_elapsed()
-
-    print("\nMetrics (mutation site detection):")
-    print(f"Accuracy:  {accuracy_score(y_true_all, y_pred_all):.4f}")
-    print(f"Precision: {precision_score(y_true_all, y_pred_all, zero_division=0):.4f}")
-    print(f"Recall:    {recall_score(y_true_all, y_pred_all, zero_division=0):.4f}")
-    print(f"F1 Score:  {f1_score(y_true_all, y_pred_all, zero_division=0):.4f}")
+    print(counter_correct / counter_all)
