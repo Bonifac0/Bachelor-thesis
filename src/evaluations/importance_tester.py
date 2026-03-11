@@ -5,15 +5,12 @@ from src.training.run_model import ModelRunner
 from src.training.reverse_mutation_generator import reverse_mutate
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
-
-# from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import numpy as np
 import json
 
-
 """
 to run:
-python -m src.training.importance_tester
+python -m src.evaluations.importance_tester
 """
 
 
@@ -155,21 +152,21 @@ if __name__ == "__main__":
     runner = ModelRunner(classificator)
 
     proteins = [
-        # {
-        #     "prot_id": "alice",
-        #     "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
-        #     "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-        # },
+        {
+            "prot_id": "alice",
+            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        },
         # {
         #     "prot_id": "bob",
         #     "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
         #     "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
         # },
-        {
-            "prot_id": "A0A4R3J6H1",
-            "domain": "REIRKTFQVALENHKSGVPLTWRDKKTGAATTVTPVLTYKAASGAFCRTYRQSITLNGKTHLYPGVACRESRLKWVIPRLAQLVGNTSRFTVINHVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYAPEIGQYVRREDYYKYPGKTY",
-            "mutant": "REIRKTFQVALENHKSGVPLTWRDKKTGAYTTVTFVLTYKARSGAFCRTYRYSITLNGKTYLYRGVACRESRLKWVIPRLAQLVGNTSRFTVINVVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYACEIGQYVRREDYYKYPGKTY",
-        },
+        # {
+        #     "prot_id": "A0A4R3J6H1",
+        #     "domain": "REIRKTFQVALENHKSGVPLTWRDKKTGVPLTWRDKKTGAATTVTPVLTYKAASGAFCRTYRQSITLNGKTHLYPGVACRESRLKWVIPRLAQLVGNTSRFTVINHVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYAPEIGQYVRREDYYKYPGKTY",
+        #     "mutant": "REIRKTFQVALENHKSGVPLTWRDKKTGVPLTWRDKKTGAYTTVTFVLTYKARSGAFCRTYRYSITLNGKTYLYRGVACRESRLKWVIPRLAQLVGNTSRFTVINVVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYACEIGQYVRREDYYKYPGKTY",
+        # },
     ]
     # with open("selected_dom_mut_pair.json", "r") as f:
     #     proteins = json.load(f)
