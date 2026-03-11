@@ -169,7 +169,7 @@ for epoch in range(EPOCHS):
             break
 
 # Save model
-model_path = "importance_model.pt"
+model_path = "resources/importance_model.pt"
 torch.save(model.state_dict(), model_path)
 
 artifact = wandb.Artifact(

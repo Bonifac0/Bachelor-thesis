@@ -4,6 +4,8 @@ test*
 .directory
 /training_data
 /wandb
+/resources/DP-LK-online.pdf
+/resources/importance_model.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

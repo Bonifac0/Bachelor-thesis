@@ -14,7 +14,9 @@ python -m src.training.run_model
 
 class ModelRunner:
     def __init__(
-        self, classificator: Classificator, model_path: str = "importance_model.pt"
+        self,
+        classificator: Classificator,
+        model_path: str = "resources/importance_model.pt",
     ):
         self.classificator = classificator
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
