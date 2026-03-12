@@ -2,7 +2,6 @@ import random
 from src.predictor import Classificator
 from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
-from src.training.reverse_mutation_generator import reverse_mutate
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
 import numpy as np
@@ -65,39 +64,6 @@ def generate_random_mutations(dna: str, value: float, num_mutations: int = 10):
     return mutations
 
 
-def use_reverse_mutation(classificator, baseline, baseline_score):
-    data = []
-    for _ in range(5):
-        sinthetic_mezo, _, _ = reverse_mutate(classificator, baseline, 0.1, 0.1)
-        if single_revert is None:
-            print("didnt make it")
-            continue
-        variants, indices = single_revert(sinthetic_mezo, baseline)
-
-        mutations = [("", mut) for mut in variants]
-        probability = [i[3] for i in classificator.classify(mutations)]
-
-        counter = 0
-        indices.append(-1)
-
-        single_data = []
-        print(indices)
-        for idx, mut in enumerate(baseline):
-            if idx == indices[counter]:
-                score = baseline_score - probability[counter]
-                counter += 1
-            else:
-                score = 0
-            single_data.append(score)
-        # print(single_data)
-        data.append(single_data)
-
-    real_score = np.mean(data, axis=0)
-    print()
-    print(real_score)
-    return real_score
-
-
 def use_chaotic_mutations(
     classificator, baseline, baseline_score, iterations=50
 ) -> np.ndarray:
@@ -152,21 +118,21 @@ if __name__ == "__main__":
     runner = ModelRunner(classificator)
 
     proteins = [
-        {
-            "prot_id": "alice",
-            "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
-            "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
-        },
+        # {
+        #     "prot_id": "alice",
+        #     "domain": "DRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
+        #     "mutant": "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
+        # },
         # {
         #     "prot_id": "bob",
         #     "domain": "ALQLRAETGAATPADWHWGDVAIIADNRTEADVIRQFRA",
         #     "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
         # },
-        # {
-        #     "prot_id": "A0A4R3J6H1",
-        #     "domain": "REIRKTFQVALENHKSGVPLTWRDKKTGVPLTWRDKKTGAATTVTPVLTYKAASGAFCRTYRQSITLNGKTHLYPGVACRESRLKWVIPRLAQLVGNTSRFTVINHVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYAPEIGQYVRREDYYKYPGKTY",
-        #     "mutant": "REIRKTFQVALENHKSGVPLTWRDKKTGVPLTWRDKKTGAYTTVTFVLTYKARSGAFCRTYRYSITLNGKTYLYRGVACRESRLKWVIPRLAQLVGNTSRFTVINVVKLKGAKKDTKYVQRWQCAVDGTERVRVLAGTFDTYKVECKRFSPTFRFYQKRTWYYACEIGQYVRREDYYKYPGKTY",
-        # },
+        {
+            "prot_id": "A0A5J4KW93",
+            "domain": "IVIPDDYQDAVRNLDCFSKLAGHEVTVYQDSVEDVETLAARFQDAEALVLIRERTAITEDLLARLPKLNFISQTGRGIPHIDVDACTRHGIPVAVGGGSPYATAELTWVWSW",
+            "mutant": "PVIPWDYQDAVRILDCFSKLAGHEVTVYQYSVEDVEKLAARFQDAEALVLIMRRTAITEDLLYRLPKLNFIKQTGRGIPHIDVDVCRRHGIPVAVGGGSPYATAELTWVWSW",
+        },
     ]
     # with open("selected_dom_mut_pair.json", "r") as f:
     #     proteins = json.load(f)

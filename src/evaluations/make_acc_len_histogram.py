@@ -18,12 +18,12 @@ python -m src.evaluations.make_acc_len_histogram
 def calculate_len_stats(output_json="test_importance/len_stats.json"):
     classificator = Classificator()
     runner = ModelRunner(classificator)
-    with open("selected_dom_mut_pair.json", "r") as f:
+    with open("datasets/mutants_min:13.71_hev:15.82.json", "r") as f:
         proteins = json.load(f)
 
     # Specify groups range manually: [(low, high), ...]
     # ranges = [(0, 40), (41, 80), (81, 120), (121, 160), (161, 250)]
-    ranges = [(0, 25), (26, 28), (31, 33)]
+    ranges = [(180, 200), (80, 100), (0, 40)]
 
     groups = [[] for _ in ranges]
     bin_labels = [f"{low}-{high}" for low, high in ranges]
@@ -34,7 +34,7 @@ def calculate_len_stats(output_json="test_importance/len_stats.json"):
     for p in proteins:
         p_len = len(p["domain"])
         for idx, (low, high) in enumerate(ranges):
-            if low <= p_len <= high:
+            if low <= p_len <= high and len(groups[idx]) < 1:
                 groups[idx].append(p)
                 break
 
@@ -135,5 +135,5 @@ def visualize_len_stats(input_json="test_importance/len_stats.json"):
 
 
 if __name__ == "__main__":
-    # calculate_len_stats(classificator, runner)
+    calculate_len_stats()
     visualize_len_stats()
