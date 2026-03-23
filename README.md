@@ -71,18 +71,18 @@ Transformer Interpretability Beyond Attention Visualization ([source](https://ar
 ]
 ```
 
-- `all_domain_embedding.dat`: saved importance embedding from `mutants_min:13.71_hev:15.82.json` using Captum
+- `domain_embedding.dat`: saved importance embedding from `mutants_min:13.71_hev:15.82.json` using Captum
     - created by *src/training/collect_embeddings.py* with *--mode domain* flag
     - saved tensor as numpy memmap
     - contein embeding for each residue (letter) to each class
-    - shape: (number of residues, 1280 * 4 classes)
+    - shape: (number of residues, 1280)
 
-- `all_mutant_embedding.dat`: same as `all_domain_embedding.dat`, just for mutants
+- `mutant_embedding.dat`: same as `domain_embedding.dat`, just for mutants
     - created by *src/training/collect_embeddings.py* with *--mode mutant* flag
 
 - `X.dat` and `y.dat`: data for importance predictor training
     - created by *src/training/compile_emb_to_train_data.py*
-    - input (2 * len(diff), 1280 * 4) and target (2 * len(diff), 1) (alternating 0 and 1)
+    - input (2 * len(diff), 1280) and target (2 * len(diff), 1) (alternating 0 and 1)
     - for each residue that differ (domain vs mutant) has pair:
         - domain residue importance embedding - 0
         - mutant residue importance embedding - 1
