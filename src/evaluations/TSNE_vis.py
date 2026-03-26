@@ -16,6 +16,8 @@ DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
 MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
+TARGET_AA = "R"  # Amino acid to highlight
+
 
 def main():
     with open(INPUT_PATH, "r") as f:
@@ -25,12 +27,10 @@ def main():
     total_residues = sum(prot_lengths)
     residue_prot_lengths = np.repeat(prot_lengths, prot_lengths)
 
-    # Identify first residues of each protein
-    is_first_residue = np.zeros(total_residues, dtype=bool)
-    curr = 0
-    for l in prot_lengths:
-        is_first_residue[curr] = True
-        curr += l
+    # Extract all sequences to find the target amino acid positions
+    print(f"Extracting sequences to highlight '{TARGET_AA}'...")
+    all_sequences = "".join(p["domain"] for p in proteins)
+    is_target_aa = np.array([aa == TARGET_AA for aa in all_sequences])
 
     domain_emb = np.memmap(
         DOMAIN_EMB_PATH,
@@ -54,15 +54,16 @@ def main():
         print(f"Subsampling to {MAX_POINTS} residues...")
         indices = np.random.choice(total_residues, MAX_POINTS, replace=False)
         indices.sort()
+
         d_subset = domain_emb[indices].astype(np.float32)
         m_subset = mutant_emb[indices].astype(np.float32)
         colors_subset = residue_prot_lengths[indices]
-        first_res_subset = is_first_residue[indices]
+        target_aa_subset = is_target_aa[indices]
     else:
         d_subset = domain_emb[:].astype(np.float32)
         m_subset = mutant_emb[:].astype(np.float32)
         colors_subset = residue_prot_lengths
-        first_res_subset = is_first_residue
+        target_aa_subset = is_target_aa
 
     print("Concatenating...")
     combined_emb = np.concatenate([d_subset, m_subset], axis=0)
@@ -78,9 +79,9 @@ def main():
     # Visualization
     plt.figure(figsize=(14, 10), dpi=300)
 
-    # Masks for normal vs first residues
-    norm_mask = ~first_res_subset
-    first_mask = first_res_subset
+    # Masks for normal vs target amino acids
+    norm_mask = ~target_aa_subset
+    target_mask = target_aa_subset
 
     # Plot normal residues (circles)
     sc = plt.scatter(
@@ -88,8 +89,8 @@ def main():
         domain_reduced[norm_mask, 1],
         c=colors_subset[norm_mask],
         marker="o",
-        label="Domain (Residue)",
-        alpha=0.5,
+        label="Domain (Other AA)",
+        alpha=0.4,
         s=3,
         cmap="viridis",
     )
@@ -100,39 +101,39 @@ def main():
         mutant_reduced[norm_mask, 1],
         c=colors_subset[norm_mask],
         marker="s",
-        label="Mutant (Residue)",
-        alpha=0.5,
+        label="Mutant (Other AA)",
+        alpha=0.4,
         s=3,
         cmap="viridis",
     )
 
-    # Plot first residues (red crosses)
+    # Plot target amino acids (red crosses)
     plt.scatter(
-        domain_reduced[first_mask, 0],
-        domain_reduced[first_mask, 1],
+        domain_reduced[target_mask, 0],
+        domain_reduced[target_mask, 1],
         color="red",
         marker="x",
-        label="Protein Start (Domain)",
-        s=30,
-        linewidths=1,
+        label=f"'{TARGET_AA}' (Domain)",
+        s=40,
+        linewidths=1.5,
     )
     plt.scatter(
-        mutant_reduced[first_mask, 0],
-        mutant_reduced[first_mask, 1],
+        mutant_reduced[target_mask, 0],
+        mutant_reduced[target_mask, 1],
         color="darkred",
         marker="x",
-        label="Protein Start (Mutant)",
-        s=30,
-        linewidths=1,
+        label=f"'{TARGET_AA}' (Mutant)",
+        s=40,
+        linewidths=1.5,
     )
 
     plt.colorbar(sc, label="Protein Length")
-    plt.title(f"TSNE of Domain and Mutant Embeddings ({MODE})")
+    plt.title(f"TSNE highlighting Amino Acid '{TARGET_AA}' ({MODE})")
     plt.xlabel("TSNE Dimension 1")
     plt.ylabel("TSNE Dimension 2")
     plt.legend(markerscale=2, loc="upper right")
 
-    output_plot = f"TSNE_{MODE}.png"
+    output_plot = f"TSNE_highlight_AA_{TARGET_AA}.png"
     plt.savefig(output_plot, bbox_inches="tight")
     print(f"Plot saved to {output_plot}")
 
