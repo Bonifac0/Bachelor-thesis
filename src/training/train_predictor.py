@@ -74,7 +74,7 @@ def main():
 
     PATIENCE = 3
     MIN_DELTA = 1e-6
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y/%m/%d_%H:%M:%S")
 
     wandb.init(
         project="importance-predictor",
@@ -113,6 +113,7 @@ def main():
 
     best_val_loss = float("inf")
     patience_counter = 0
+    print("Starting training")
 
     # -------- Training loop --------
     for epoch in range(EPOCHS):
@@ -173,21 +174,41 @@ def main():
                 print("Early stopping triggered")
                 break
 
-    # Save model
-    model_path = "resources/importance_model.pt"
-    torch.save(model.state_dict(), model_path)
+    # =========================
+    # Save model + normalization and log to W&B
+    # =========================
 
+    model_path = "resources/importance_model.pt"
+
+    # Save everything in one checkpoint
+    checkpoint = {
+        "model_state_dict": model.state_dict(),
+        "normalization": dataset.norm_stats,  # mean/std for embeddings & length
+        "features": ImportancePredictor.FEATURES,
+        "mode": MODE,
+    }
+
+    # Save locally
+    torch.save(checkpoint, model_path)
+
+    # Create W&B artifact
     artifact = wandb.Artifact(
         name="importance_model",
         type="model",
         metadata={
             "mode": MODE,
             "best_val_loss": best_val_loss,
+            "features": ImportancePredictor.FEATURES,
         },
     )
+
+    # Add the local checkpoint file
     artifact.add_file(model_path)
+
+    # Log artifact to W&B
     wandb.log_artifact(artifact)
-    print("Model saved and logged to W&B")
+
+    print(f"Model and normalization stats saved to {model_path} and logged to W&B")
 
     # -------- Testing --------
     test_loss, test_metrics, y_pred, y_true = evaluate_model(

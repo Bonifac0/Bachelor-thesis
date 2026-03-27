@@ -20,17 +20,47 @@ class ModelRunner:
     ):
         self.classificator = classificator
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Load checkpoint (model + normalization)
+        checkpoint = torch.load(model_path, map_location=self.DEVICE)
+
+        # Load model
         self.model = ImportancePredictor()
-        self.model.load_state_dict(torch.load(model_path, map_location=self.DEVICE))
+        self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.to(self.DEVICE)
         self.model.eval()
+
+        # Load normalization stats
+        norm = checkpoint["normalization"]
+        self.mean_emb = norm["mean_emb"].to(self.DEVICE)
+        self.std_emb = norm["std_emb"].to(self.DEVICE)
+        self.mean_len = norm["mean_len"].to(self.DEVICE)
+        self.std_len = norm["std_len"].to(self.DEVICE)
+
+    def normalize_input(
+        self, x: torch.Tensor, length_feature: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Normalize embeddings and length feature separately.
+        x: (N, 1280)
+        length_feature: (N, 1)
+        """
+        emb = (x - self.mean_emb) / self.std_emb
+        length = (length_feature - self.mean_len) / self.std_len
+        return torch.cat([emb, length], dim=-1)
 
     def predict_importance(self, seq) -> np.ndarray:
         # Compute embeddings
         emb = get_captum_embedding(self.classificator, seq)  # (N, 1280)
-
-        # Convert to torch tensor
         x = torch.from_numpy(emb).float().to(self.DEVICE)
+
+        # Create length feature for each residue
+        seq_len = torch.full(
+            (x.shape[0], 1), fill_value=len(seq), device=x.device, dtype=x.dtype
+        )
+
+        # Normalize embeddings and length feature
+        x = self.normalize_input(x, seq_len)
 
         # Forward pass
         with torch.no_grad():
@@ -42,7 +72,7 @@ class ModelRunner:
 
 if __name__ == "__main__":
     classificator = Classificator()
-    runner = ModelRunner(classificator, "importance_model.pt")
+    runner = ModelRunner(classificator, "resources/importance_model.pt")
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory
@@ -65,6 +95,7 @@ if __name__ == "__main__":
             "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",
         ),
     ]
+
     for protein in pokus:
         importance_scores = runner.predict_importance(protein[1])
 

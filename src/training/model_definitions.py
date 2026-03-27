@@ -33,9 +33,14 @@ class ImportancePredictor(nn.Module):
 
 
 class ResidueDataset(Dataset):
-    def __init__(self, X, y):
+    def __init__(self, X, y, mean_emb, std_emb, mean_len, std_len):
         self.X = X
         self.y = y
+
+        self.mean_emb = mean_emb
+        self.std_emb = std_emb
+        self.mean_len = mean_len
+        self.std_len = std_len
 
     def __len__(self):
         return self.X.shape[0]
@@ -43,6 +48,17 @@ class ResidueDataset(Dataset):
     def __getitem__(self, idx):
         x = torch.tensor(self.X[idx], dtype=torch.float32)
         y = torch.tensor(self.y[idx], dtype=torch.float32)
+
+        # Separate handeling of different features type
+        emb = x[:1280]
+        length = x[1280:]
+
+        # normalize
+        emb = (emb - self.mean_emb) / self.std_emb
+        length = (length - self.mean_len) / self.std_len
+
+        x = torch.cat([emb, length], dim=0)
+
         return x, y
 
 
@@ -55,13 +71,54 @@ class DatasetHandler:
     BATCH_SIZE = 2048
     NUM_WORKERS = 4  # how it reads from disk
 
-    def __init__(self, X, y, dataset_split: tuple[float, float, float]):
-        self.residue_dataset = ResidueDataset(X, y)
-        self.num_samples = len(self.residue_dataset)
+    def __init__(self, X, y, dataset_split):
+        self.X = X
+        self.y = y
+        self.num_samples = len(X)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pin = device.type == "cuda"
-        train_set, val_set, test_set = self._prepare_loaders(dataset_split)
+
+        train_idx, val_idx, test_idx = self._split_indices(dataset_split)
+
+        # =========================
+        # Compute normalization (TRAIN ONLY)
+        # =========================
+        X_train = X[train_idx].astype(np.float32)  # convert to float32 temporarily
+
+        X_emb = X_train[:, :1280]
+        X_len = X_train[:, 1280:]
+
+        mean_emb = torch.from_numpy(X_emb.mean(axis=0)).float()
+        std_emb = torch.from_numpy(X_emb.std(axis=0) + 1e-8).float()
+
+        mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
+        std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
+
+        # store for later (saving model)
+        self.norm_stats = {
+            "mean_emb": mean_emb,
+            "std_emb": std_emb,
+            "mean_len": mean_len,
+            "std_len": std_len,
+        }
+        print("Normalization finnished")
+
+        # =========================
+        # Create datasets
+        # =========================
+        train_set = Subset(
+            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            train_idx,
+        )
+        val_set = Subset(
+            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            val_idx,
+        )
+        test_set = Subset(
+            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            test_idx,
+        )
 
         self.train_loader = DataLoader(
             train_set,
@@ -87,12 +144,7 @@ class DatasetHandler:
             pin_memory=pin,
         )
 
-    def __getitem__(self, idx):
-        x = torch.tensor(self.X[idx], dtype=torch.float32)
-        y = torch.tensor(self.y[idx], dtype=torch.float32)
-        return x, y
-
-    def _prepare_loaders(self, dataset_split: tuple[float, float, float]):
+    def _split_indices(self, dataset_split):
         assert np.isclose(sum(dataset_split), 1.0)
 
         indices = np.arange(self.num_samples)
@@ -104,8 +156,4 @@ class DatasetHandler:
         val_idx = indices[train_end:val_end]
         test_idx = indices[val_end:]
 
-        train_set = Subset(self.residue_dataset, train_idx)
-        val_set = Subset(self.residue_dataset, val_idx)
-        test_set = Subset(self.residue_dataset, test_idx)
-
-        return train_set, val_set, test_set
+        return train_idx, val_idx, test_idx
