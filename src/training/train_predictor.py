@@ -61,6 +61,7 @@ def main():
     X_PATH = f"training_data/{MODE}/X.dat"
     Y_PATH = f"training_data/{MODE}/y.dat"
     LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
+    AA_PATH = f"training_data/{MODE}/amino_acids.txt"
 
     TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
@@ -219,16 +220,12 @@ def main():
         mode="r",
         shape=(TOTAL_RESIDUES,),
     )
-    print(f"rezidue_prot_len: {len(residue_prot_lengths)}")
 
     test_lengths = residue_prot_lengths[-len(y_pred) :]
-    print(f"tast lens: {len(test_lengths)}")
-    print(f"ypred lens: {len(y_pred)}")
 
     # Define groups (0-50, 51-100, ...)
     BIN_SIZE = 50
     max_len = int(np.max(test_lengths))
-    print(f"max len: {max_len}")
     bins = np.arange(0, max_len + BIN_SIZE, BIN_SIZE)
 
     for i in range(len(bins) - 1):
@@ -259,6 +256,51 @@ def main():
 
             print(
                 f"Group {low + 1:3}-{high:3} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
+            )
+
+    # -------- Grouped Testing by Amino Acid --------
+    print("\nTesting by Amino Acid Groups:")
+
+    # Load amino acid sequence (same order as residues)
+    with open(AA_PATH, "r") as f:
+        aa_sequence = f.read().strip()
+
+    aa_array = np.array(list(aa_sequence))
+
+    # Align with test set (same logic as lengths)
+    test_aa = aa_array[-len(y_pred) :]
+
+    # Standard amino acids
+    AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
+
+    for i, aa in enumerate(AMINO_ACIDS):
+        mask = test_aa == aa
+
+        if np.any(mask):
+            y_pred_bin = y_pred[mask]
+            y_true_bin = y_true[mask]
+
+            acc = accuracy_score(y_true_bin, y_pred_bin)
+            f1 = f1_score(y_true_bin, y_pred_bin, zero_division=0)
+            prec = precision_score(y_true_bin, y_pred_bin, zero_division=0)
+            rec = recall_score(y_true_bin, y_pred_bin, zero_division=0)
+
+            group_name = f"AA_{aa}"
+
+            wandb.log(
+                {
+                    "AA_id": i,
+                    "AA_name": group_name,
+                    "AA_test_accuracy": acc,
+                    "AA_test_f1": f1,
+                    "AA_test_precision": prec,
+                    "AA_test_recall": rec,
+                    "AA_test_count": np.sum(mask),
+                }
+            )
+
+            print(
+                f"AA {aa} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
             )
 
     wandb.finish()

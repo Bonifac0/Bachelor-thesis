@@ -18,6 +18,7 @@ INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 OUT_X_PATH = f"training_data/{MODE}/X.dat"
 OUT_Y_PATH = f"training_data/{MODE}/y.dat"
 OUT_LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
+AA_OUT_PATH = f"training_data/{MODE}/amino_acids.txt"
 
 
 def compute_difference_mask(domain: str, mutant: str) -> np.ndarray:
@@ -81,6 +82,11 @@ def main():
     emb_idx = 0
     out_idx = 0
 
+    all_domain = "".join([p["domain"] for p in proteins])
+    all_mutant = "".join([p["mutant"] for p in proteins])
+
+    aa_out = []
+
     for p in proteins:
         domain_seq = p["domain"]
         mutant_seq = p["mutant"]
@@ -96,12 +102,14 @@ def main():
             X[out_idx] = domain_emb[emb_idx]
             y[out_idx] = 0
             lengths[out_idx] = len(domain_seq)
+            aa_out.append(domain_seq[i])
             out_idx += 1
 
             # mutant embedding
             X[out_idx] = mutant_emb[emb_idx]
             y[out_idx] = 1
             lengths[out_idx] = len(domain_seq)
+            aa_out.append(mutant_seq[i])
             out_idx += 1
 
             emb_idx += 1
@@ -109,6 +117,11 @@ def main():
     X.flush()
     y.flush()
     lengths.flush()
+
+    with open(AA_OUT_PATH, "w") as f:
+        f.write("".join(aa_out))
+
+    print(f"AA file saved to {AA_OUT_PATH}")
 
     print(f"X shape: {X.shape}")
     print(f"y shape: {y.shape}")
