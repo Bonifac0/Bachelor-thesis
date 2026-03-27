@@ -57,7 +57,8 @@ def main():
     # =========================
     # The model configuration in src/training/model_definitions.py
 
-    MODE = "basic_1280"
+    # MODE = "basic_1280"
+    MODE = "basic_1280_with_len"
     X_PATH = f"training_data/{MODE}/X.dat"
     Y_PATH = f"training_data/{MODE}/y.dat"
     LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"

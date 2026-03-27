@@ -17,17 +17,18 @@ class ImportancePredictor(nn.Module):
     The predictor itself
     """
 
-    FEATURES = 1280  # for one class
+    # FEATURES = 1280  # for one class
     # FEATURES = 1280 * 4  # for all classes
+    FEATURES = 1281  # for one class
 
     def __init__(self):
         super().__init__()
 
-        self.norm = nn.LayerNorm(self.FEATURES)
+        # self.norm = nn.LayerNorm(self.FEATURES)
         self.linear = nn.Linear(self.FEATURES, 1)
 
     def forward(self, x):
-        x = self.norm(x)
+        # x = self.norm(x)
         return self.linear(x).squeeze(-1)
 
 

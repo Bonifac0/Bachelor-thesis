@@ -6,11 +6,11 @@ to run:
 python -m src.training.compile_emb_to_train_data
 """
 
-FEATURES = 1280  # for one class
+# FEATURES = 1280  # for one class
 # FEATURES = 1280 * 4  # for all classes
-# FEATURES = 1281
+FEATURES = 1281
 
-MODE = "basic_1280"
+MODE = "basic_1280_with_len"
 DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
 MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
@@ -120,8 +120,6 @@ def main():
 
     with open(AA_OUT_PATH, "w") as f:
         f.write("".join(aa_out))
-
-    print(f"AA file saved to {AA_OUT_PATH}")
 
     print(f"X shape: {X.shape}")
     print(f"y shape: {y.shape}")
