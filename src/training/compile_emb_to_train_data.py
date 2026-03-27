@@ -6,16 +6,18 @@ to run:
 python -m src.training.compile_emb_to_train_data
 """
 
-# FEATURES = 1280  # for one class
-FEATURES = 1280 * 4  # for all classes
+FEATURES = 1280  # for one class
+# FEATURES = 1280 * 4  # for all classes
+# FEATURES = 1281
 
-MODE = "combine_1280+4"
+MODE = "basic_1280"
 DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
 MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
 OUT_X_PATH = f"training_data/{MODE}/X.dat"
 OUT_Y_PATH = f"training_data/{MODE}/y.dat"
+OUT_LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
 
 
 def compute_difference_mask(domain: str, mutant: str) -> np.ndarray:
@@ -69,6 +71,13 @@ def main():
         shape=(total_samples,),
     )
 
+    lengths = np.memmap(
+        OUT_LENGTHS_PATH,
+        dtype=np.uint16,
+        mode="w+",
+        shape=(total_samples,),
+    )
+
     emb_idx = 0
     out_idx = 0
 
@@ -86,20 +95,24 @@ def main():
             # domain embedding
             X[out_idx] = domain_emb[emb_idx]
             y[out_idx] = 0
+            lengths[out_idx] = len(domain_seq)
             out_idx += 1
 
             # mutant embedding
             X[out_idx] = mutant_emb[emb_idx]
             y[out_idx] = 1
+            lengths[out_idx] = len(domain_seq)
             out_idx += 1
 
             emb_idx += 1
 
     X.flush()
     y.flush()
+    lengths.flush()
 
     print(f"X shape: {X.shape}")
     print(f"y shape: {y.shape}")
+    print(f"lengths shape: {lengths.shape}")
 
 
 if __name__ == "__main__":

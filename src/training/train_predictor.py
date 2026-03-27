@@ -7,6 +7,7 @@ import wandb
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from scipy.special import expit  # for sigmoid
 from datetime import datetime
+import json
 
 """
 to run:
@@ -59,6 +60,7 @@ def main():
     MODE = "basic_1280"
     X_PATH = f"training_data/{MODE}/X.dat"
     Y_PATH = f"training_data/{MODE}/y.dat"
+    LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
 
     TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
@@ -207,6 +209,57 @@ def main():
         f"F1: {test_metrics['f1']:.4f} | "
         f"Accuracy: {test_metrics['accuracy']:.4f}"
     )
+
+    # -------- Grouped Testing by Length --------
+    print("\nTesting by Protein Length Groups:")
+
+    residue_prot_lengths = np.memmap(
+        LENGTHS_PATH,
+        dtype=np.uint16,
+        mode="r",
+        shape=(TOTAL_RESIDUES,),
+    )
+    print(f"rezidue_prot_len: {len(residue_prot_lengths)}")
+
+    test_lengths = residue_prot_lengths[-len(y_pred) :]
+    print(f"tast lens: {len(test_lengths)}")
+    print(f"ypred lens: {len(y_pred)}")
+
+    # Define groups (0-50, 51-100, ...)
+    BIN_SIZE = 50
+    max_len = int(np.max(test_lengths))
+    print(f"max len: {max_len}")
+    bins = np.arange(0, max_len + BIN_SIZE, BIN_SIZE)
+
+    for i in range(len(bins) - 1):
+        low, high = bins[i], bins[i + 1]
+        mask = (test_lengths > low) & (test_lengths <= high)
+
+        if np.any(mask):
+            y_pred_bin = y_pred[mask]
+            y_true_bin = y_true[mask]
+
+            acc = accuracy_score(y_true_bin, y_pred_bin)
+            f1 = f1_score(y_true_bin, y_pred_bin, zero_division=0)
+            prec = precision_score(y_true_bin, y_pred_bin, zero_division=0)
+            rec = recall_score(y_true_bin, y_pred_bin, zero_division=0)
+
+            group_name = f"test_group_{low + 1}-{high}"
+            wandb.log(
+                {
+                    "group id": i,
+                    "group name": group_name,
+                    "group_test_accuracy": acc,
+                    "group_test_f1": f1,
+                    "group_test_precision": prec,
+                    "group_test_recall": rec,
+                    "group_test_count": np.sum(mask),
+                }
+            )
+
+            print(
+                f"Group {low + 1:3}-{high:3} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
+            )
 
     wandb.finish()
 
