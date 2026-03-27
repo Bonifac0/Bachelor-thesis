@@ -14,22 +14,25 @@ predictor_tester.py
 
 class ImportancePredictor(nn.Module):
     """
-    The predictor itself
+    Residue-level importance predictor for Captum embeddings + protein length.
     """
 
-    # FEATURES = 1280  # for one class
-    # FEATURES = 1280 * 4  # for all classes
-    FEATURES = 1281  # for one class
+    FEATURES = 1281  # 1280 embeddings + 1 length
 
-    def __init__(self):
+    def __init__(self, hidden_dim: int = 64):
         super().__init__()
 
-        # self.norm = nn.LayerNorm(self.FEATURES)
-        self.linear = nn.Linear(self.FEATURES, 1)
+        # Small hidden layer to allow length-dependent adjustments
+        self.model = nn.Sequential(
+            nn.Linear(self.FEATURES, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
+        )
 
-    def forward(self, x):
-        # x = self.norm(x)
-        return self.linear(x).squeeze(-1)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: (N, 1281) tensor, first 1280 = embeddings, last = protein length
+        returns: (N,) logits per residue
+        """
+        return self.model(x).squeeze(-1)
 
 
 class ResidueDataset(Dataset):

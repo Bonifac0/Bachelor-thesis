@@ -72,7 +72,7 @@ def main():
 
     DATASET_SPLIT = (0.6, 0.2, 0.2)
 
-    PATIENCE = 3
+    PATIENCE = 2
     MIN_DELTA = 1e-6
     timestamp = datetime.now().strftime("%Y/%m/%d_%H:%M:%S")
 
