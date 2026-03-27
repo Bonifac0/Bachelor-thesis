@@ -4,19 +4,19 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 """
-to run:
 python -m src.evaluations.TSNE_vis
 """
 
-FEATURES = 1280  # for one class
-# FEATURES = 1280 * 4  # for all classes
+FEATURES = 1280
 
 MODE = "basic_1280"
 DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
 MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
-TARGET_AA = "R"  # Amino acid to highlight
+# Standard amino acids
+AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
+aa_to_idx = {aa: i for i, aa in enumerate(AMINO_ACIDS)}
 
 
 def main():
@@ -25,12 +25,13 @@ def main():
 
     prot_lengths = [len(p["domain"]) for p in proteins]
     total_residues = sum(prot_lengths)
-    residue_prot_lengths = np.repeat(prot_lengths, prot_lengths)
 
-    # Extract all sequences to find the target amino acid positions
-    print(f"Extracting sequences to highlight '{TARGET_AA}'...")
+    # Extract sequences
+    print("Extracting sequences...")
     all_sequences = "".join(p["domain"] for p in proteins)
-    is_target_aa = np.array([aa == TARGET_AA for aa in all_sequences])
+
+    # Convert amino acids → indices
+    aa_indices = np.array([aa_to_idx.get(aa, -1) for aa in all_sequences])
 
     domain_emb = np.memmap(
         DOMAIN_EMB_PATH,
@@ -57,18 +58,16 @@ def main():
 
         d_subset = domain_emb[indices].astype(np.float32)
         m_subset = mutant_emb[indices].astype(np.float32)
-        colors_subset = residue_prot_lengths[indices]
-        target_aa_subset = is_target_aa[indices]
+        aa_subset = aa_indices[indices]
     else:
         d_subset = domain_emb[:].astype(np.float32)
         m_subset = mutant_emb[:].astype(np.float32)
-        colors_subset = residue_prot_lengths
-        target_aa_subset = is_target_aa
+        aa_subset = aa_indices
 
     print("Concatenating...")
     combined_emb = np.concatenate([d_subset, m_subset], axis=0)
 
-    print(f"Applying TSNE directly to {combined_emb.shape[1]} dimensions...")
+    print("Applying TSNE...")
     tsne = TSNE(n_components=2, random_state=42, n_jobs=-1)
     reduced_emb = tsne.fit_transform(combined_emb)
 
@@ -79,61 +78,43 @@ def main():
     # Visualization
     plt.figure(figsize=(14, 10), dpi=300)
 
-    # Masks for normal vs target amino acids
-    norm_mask = ~target_aa_subset
-    target_mask = target_aa_subset
+    cmap = plt.get_cmap("tab20")
 
-    # Plot normal residues (circles)
-    sc = plt.scatter(
-        domain_reduced[norm_mask, 0],
-        domain_reduced[norm_mask, 1],
-        c=colors_subset[norm_mask],
+    # Plot domain
+    sc1 = plt.scatter(
+        domain_reduced[:, 0],
+        domain_reduced[:, 1],
+        c=aa_subset,
+        cmap=cmap,
         marker="o",
-        label="Domain (Other AA)",
-        alpha=0.4,
-        s=3,
-        cmap="viridis",
+        alpha=0.6,
+        s=5,
+        label="Domain",
     )
 
-    # Plot normal mutants (squares)
-    plt.scatter(
-        mutant_reduced[norm_mask, 0],
-        mutant_reduced[norm_mask, 1],
-        c=colors_subset[norm_mask],
+    # Plot mutant
+    sc2 = plt.scatter(
+        mutant_reduced[:, 0],
+        mutant_reduced[:, 1],
+        c=aa_subset,
+        cmap=cmap,
         marker="s",
-        label="Mutant (Other AA)",
-        alpha=0.4,
-        s=3,
-        cmap="viridis",
+        alpha=0.6,
+        s=5,
+        label="Mutant",
     )
 
-    # Plot target amino acids (red crosses)
-    plt.scatter(
-        domain_reduced[target_mask, 0],
-        domain_reduced[target_mask, 1],
-        color="red",
-        marker="x",
-        label=f"'{TARGET_AA}' (Domain)",
-        s=40,
-        linewidths=1.5,
-    )
-    plt.scatter(
-        mutant_reduced[target_mask, 0],
-        mutant_reduced[target_mask, 1],
-        color="darkred",
-        marker="x",
-        label=f"'{TARGET_AA}' (Mutant)",
-        s=40,
-        linewidths=1.5,
-    )
+    # Create colorbar with amino acid labels
+    cbar = plt.colorbar(sc1, ticks=range(len(AMINO_ACIDS)))
+    cbar.ax.set_yticklabels(AMINO_ACIDS)
+    cbar.set_label("Amino Acid")
 
-    plt.colorbar(sc, label="Protein Length")
-    plt.title(f"TSNE highlighting Amino Acid '{TARGET_AA}' ({MODE})")
+    plt.title(f"TSNE colored by Amino Acid ({MODE})")
     plt.xlabel("TSNE Dimension 1")
     plt.ylabel("TSNE Dimension 2")
-    plt.legend(markerscale=2, loc="upper right")
+    plt.legend(loc="upper right")
 
-    output_plot = f"TSNE_highlight_AA_{TARGET_AA}.png"
+    output_plot = "TSNE_amino_acid_colored.png"
     plt.savefig(output_plot, bbox_inches="tight")
     print(f"Plot saved to {output_plot}")
 
