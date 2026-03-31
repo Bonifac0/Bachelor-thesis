@@ -67,18 +67,17 @@ def main():
     TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
     EPOCHS = 50  # upper bound
-    LR = 1e-2
+    LR = 1e-3
     WEIGHT_DECAY = 1e-5  # L2 regularization
 
     DATASET_SPLIT = (0.6, 0.2, 0.2)
 
-    PATIENCE = 2
+    PATIENCE = 3
     MIN_DELTA = 1e-6
-    timestamp = datetime.now().strftime("%Y/%m/%d_%H:%M:%S")
 
     wandb.init(
         project="importance-predictor",
-        name=f"{MODE}_{timestamp}",
+        name="basic_wlen_lr=e-3_hl=16",
         config={
             "mode": MODE,
             "epochs": EPOCHS,
@@ -295,6 +294,18 @@ def main():
     # Standard amino acids
     AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
 
+    table = wandb.Table(
+        columns=[
+            "AA_name",
+            "AA_f1",
+            "AA_accuracy",
+            "AA_pecision",
+            "AA_recall",
+            "AA_count",
+            "run_name",
+        ]
+    )
+
     for i, aa in enumerate(AMINO_ACIDS):
         mask = test_aa == aa
 
@@ -309,21 +320,31 @@ def main():
 
             group_name = f"AA_{aa}"
 
-            wandb.log(
-                {
-                    "AA_id": i,
-                    "AA_name": group_name,
-                    "AA_test_accuracy": acc,
-                    "AA_test_f1": f1,
-                    "AA_test_precision": prec,
-                    "AA_test_recall": rec,
-                    "AA_test_count": np.sum(mask),
-                }
+            # wandb.log(
+            #     {
+            #         "AA_id": i,
+            #         "AA_name": group_name,
+            #         "AA_test_accuracy": acc,
+            #         "AA_test_f1": f1,
+            #         "AA_test_precision": prec,
+            #         "AA_test_recall": rec,
+            #         "AA_test_count": np.sum(mask),
+            #     }
+            # )
+            table.add_data(
+                group_name,
+                f1,
+                acc,
+                prec,
+                rec,
+                np.sum(mask),
+                wandb.run.name,  # important for grouping!
             )
 
             print(
                 f"AA {aa} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
             )
+    wandb.log({"AA_table": table})
 
     wandb.finish()
 

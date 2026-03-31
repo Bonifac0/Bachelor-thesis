@@ -19,7 +19,7 @@ class ImportancePredictor(nn.Module):
 
     FEATURES = 1281  # 1280 embeddings + 1 length
 
-    def __init__(self, hidden_dim: int = 64):
+    def __init__(self, hidden_dim: int = 16):
         super().__init__()
 
         # Small hidden layer to allow length-dependent adjustments
