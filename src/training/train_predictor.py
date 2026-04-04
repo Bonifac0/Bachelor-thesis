@@ -9,6 +9,9 @@ from scipy.special import expit  # for sigmoid
 from src.training.model_definitions import (
     DatasetHandler,
     ImportancePredictorWithLengthAndHL,
+    ImportancePredictorWithLength,
+    ImportancePredictorWithHL,
+    ImportancePredictorWithNormalizatio,
     ImportancePredictorBasic,
 )
 
@@ -53,17 +56,31 @@ def evaluate_model(model, dataloader, criterion, device):
     return total_loss, metrics, y_pred, all_labels
 
 
-def main():
+def main(ARCHITECTURE):
     # ARCHITECTURE = "basic"
-    ARCHITECTURE = "len_and_HL"
+    # ARCHITECTURE = "len_and_HL_16"
+    # ARCHITECTURE = "length"
+    # ARCHITECTURE = "normalization"
+    # ARCHITECTURE = "HL_16"
 
     match ARCHITECTURE:
         case "basic":
             MODE = "basic_1280"
             model = ImportancePredictorBasic()
-        case "len_and_HL":
+        case "len_and_HL_16":
             MODE = "basic_1280_with_len"
-            model = ImportancePredictorWithLengthAndHL()
+            HL_dim = 16
+            model = ImportancePredictorWithLengthAndHL(HL_dim)
+        case "length":
+            MODE = "basic_1280_with_len"
+            model = ImportancePredictorWithLength()
+        case "normalization":
+            MODE = "basic_1280"
+            model = ImportancePredictorWithNormalizatio()
+        case "HL_16":
+            MODE = "basic_1280"
+            HL_dim = 16
+            model = ImportancePredictorWithHL(HL_dim)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -96,14 +113,9 @@ def main():
             "dataset_split": DATASET_SPLIT,
             "patience": PATIENCE,
             "min_delta": MIN_DELTA,
-            "model": model.NAME,
             "features": model.FEATURES,
         },
     )
-
-    # =========================
-    # Dataset
-    # =========================
 
     X = np.memmap(
         X_PATH,
@@ -179,10 +191,6 @@ def main():
             if patience_counter >= PATIENCE:
                 print("Early stopping triggered")
                 break
-
-    # =========================
-    # Save model + normalization and log to W&B
-    # =========================
 
     # Save everything in one checkpoint
     checkpoint = {
@@ -299,18 +307,6 @@ def main():
     # Standard amino acids
     AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
 
-    # table = wandb.Table(
-    #     columns=[
-    #         "AA_name",
-    #         "AA_f1",
-    #         "AA_accuracy",
-    #         "AA_pecision",
-    #         "AA_recall",
-    #         "AA_count",
-    #         "run_name",
-    #     ]
-    # )
-
     for i, aa in enumerate(AMINO_ACIDS):
         mask = test_aa == aa
 
@@ -336,23 +332,15 @@ def main():
                     "AA_test_count": np.sum(mask),
                 }
             )
-            # table.add_data(
-            #     group_name,
-            #     f1,
-            #     acc,
-            #     prec,
-            #     rec,
-            #     np.sum(mask),
-            #     wandb.run.name,  # important for grouping!
-            # )
 
             print(
                 f"AA {aa} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
             )
-    # wandb.log({"AA_table": table})
 
     wandb.finish()
 
 
 if __name__ == "__main__":
-    main()
+    A = ["basic", "len_and_HL_16", "length", "normalization", "HL_16"]
+    for a in A:
+        main(a)

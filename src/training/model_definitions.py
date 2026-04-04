@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader, Subset
 improted in:
 train_predictor.py
 run_model.py
-predictor_tester.py
 """
 
 
@@ -18,7 +17,6 @@ class ImportancePredictorWithLengthAndHL(nn.Module):
     With hidel layer
     """
 
-    NAME = "IP_with_len_and_HL"
     FEATURES = 1281  # 1280 embeddings + 1 length
     USE_LENGTH = True
 
@@ -38,23 +36,76 @@ class ImportancePredictorWithLengthAndHL(nn.Module):
         return self.model(x).squeeze(-1)
 
 
-class ImportancePredictorBasic(nn.Module):
+class ImportancePredictorWithLength(nn.Module):
     """
-    Residue-level importance predictor for Captum embeddings
+    Basic with protein length.
     """
 
-    NAME = "IP_basic"
+    FEATURES = 1281  # 1280 embeddings + 1 length
+    USE_LENGTH = True
+
+    def __init__(self):
+        super().__init__()
+
+        self.linear = nn.Linear(self.FEATURES, 1)
+
+    def forward(self, x):
+        return self.linear(x).squeeze(-1)
+
+
+class ImportancePredictorWithHL(nn.Module):
+    """
+    Basic with hidel layer
+    """
+
+    FEATURES = 1280
+    USE_LENGTH = False
+
+    def __init__(self, hidden_dim: int = 16):
+        super().__init__()
+
+        # Small hidden layer to allow length-dependent adjustments
+        self.model = nn.Sequential(
+            nn.Linear(self.FEATURES, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x).squeeze(-1)
+
+
+class ImportancePredictorWithNormalizatio(nn.Module):
+    """
+    Basic with normalization
+    """
+
     FEATURES = 1280
     USE_LENGTH = False
 
     def __init__(self):
         super().__init__()
 
-        self.norm = nn.LayerNorm(self.FEATURES)  # TODO maybe delete
+        self.norm = nn.LayerNorm(self.FEATURES)
         self.linear = nn.Linear(self.FEATURES, 1)
 
     def forward(self, x):
         x = self.norm(x)
+        return self.linear(x).squeeze(-1)
+
+
+class ImportancePredictorBasic(nn.Module):
+    """
+    The basic one
+    """
+
+    FEATURES = 1280
+    USE_LENGTH = False
+
+    def __init__(self):
+        super().__init__()
+
+        self.linear = nn.Linear(self.FEATURES, 1)
+
+    def forward(self, x):
         return self.linear(x).squeeze(-1)
 
 
