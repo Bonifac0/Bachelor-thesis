@@ -12,12 +12,15 @@ predictor_tester.py
 """
 
 
-class ImportancePredictor(nn.Module):
+class ImportancePredictorWithLengthAndHL(nn.Module):
     """
     Residue-level importance predictor for Captum embeddings + protein length.
+    With hidel layer
     """
 
+    NAME = "IP_with_len_and_HL"
     FEATURES = 1281  # 1280 embeddings + 1 length
+    USE_LENGTH = True
 
     def __init__(self, hidden_dim: int = 16):
         super().__init__()
@@ -35,13 +38,42 @@ class ImportancePredictor(nn.Module):
         return self.model(x).squeeze(-1)
 
 
+class ImportancePredictorBasic(nn.Module):
+    """
+    Residue-level importance predictor for Captum embeddings
+    """
+
+    NAME = "IP_basic"
+    FEATURES = 1280
+    USE_LENGTH = False
+
+    def __init__(self):
+        super().__init__()
+
+        self.norm = nn.LayerNorm(self.FEATURES)  # TODO maybe delete
+        self.linear = nn.Linear(self.FEATURES, 1)
+
+    def forward(self, x):
+        x = self.norm(x)
+        return self.linear(x).squeeze(-1)
+
+
 class ResidueDataset(Dataset):
-    def __init__(self, X, y, mean_emb, std_emb, mean_len, std_len):
+    def __init__(
+        self,
+        X,
+        y,
+        mean_emb,
+        std_emb,
+        mean_len=None,
+        std_len=None,
+    ):
         self.X = X
         self.y = y
 
         self.mean_emb = mean_emb
         self.std_emb = std_emb
+
         self.mean_len = mean_len
         self.std_len = std_len
 
@@ -52,60 +84,66 @@ class ResidueDataset(Dataset):
         x = torch.tensor(self.X[idx], dtype=torch.float32)
         y = torch.tensor(self.y[idx], dtype=torch.float32)
 
-        # Separate handeling of different features type
-        emb = x[:1280]
-        length = x[1280:]
+        if self.mean_len is not None:
+            emb = x[:1280]
+            length = x[1280:]
 
-        # normalize
-        emb = (emb - self.mean_emb) / self.std_emb
-        length = (length - self.mean_len) / self.std_len
+            emb = (emb - self.mean_emb) / self.std_emb
+            length = (length - self.mean_len) / self.std_len
 
-        x = torch.cat([emb, length], dim=0)
+            x = torch.cat([emb, length], dim=0)
+        else:
+            x = (x - self.mean_emb) / self.std_emb
 
         return x, y
 
 
 class DatasetHandler:
-    """
-    Have train_loader, val_loader and test_loader
-    Wraper for ResidueDataset and loaders
-    """
-
     BATCH_SIZE = 2048
-    NUM_WORKERS = 4  # how it reads from disk
+    NUM_WORKERS = 4
 
-    def __init__(self, X, y, dataset_split):
+    def __init__(self, X, y, dataset_split, use_length=True):
         self.X = X
         self.y = y
         self.num_samples = len(X)
+        self.use_length = use_length
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pin = device.type == "cuda"
 
         train_idx, val_idx, test_idx = self._split_indices(dataset_split)
 
-        # =========================
-        # Compute normalization (TRAIN ONLY)
-        # =========================
-        X_train = X[train_idx].astype(np.float32)  # convert to float32 temporarily
+        # because of normalization
+        X_train = X[train_idx].astype(np.float32)
 
-        X_emb = X_train[:, :1280]
-        X_len = X_train[:, 1280:]
+        if self.use_length:
+            X_emb = X_train[:, :1280]
+            X_len = X_train[:, 1280:]
 
-        mean_emb = torch.from_numpy(X_emb.mean(axis=0)).float()
-        std_emb = torch.from_numpy(X_emb.std(axis=0) + 1e-8).float()
+            mean_emb = torch.from_numpy(X_emb.mean(axis=0)).float()
+            std_emb = torch.from_numpy(X_emb.std(axis=0) + 1e-8).float()
 
-        mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
-        std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
+            mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
+            std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
 
-        # store for later (saving model)
-        self.norm_stats = {
-            "mean_emb": mean_emb,
-            "std_emb": std_emb,
-            "mean_len": mean_len,
-            "std_len": std_len,
-        }
-        print("Normalization finnished")
+            self.norm_stats = {
+                "mean_emb": mean_emb,
+                "std_emb": std_emb,
+                "mean_len": mean_len,
+                "std_len": std_len,
+            }
+        else:
+            mean_emb = torch.from_numpy(X_train.mean(axis=0)).float()
+            std_emb = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
+
+            self.norm_stats = {
+                "mean_emb": mean_emb,
+                "std_emb": std_emb,
+            }
+
+            mean_len = std_len = None  # not used
+
+        print("Normalization finished")
 
         # =========================
         # Create datasets
@@ -155,8 +193,8 @@ class DatasetHandler:
         train_end = int(dataset_split[0] * self.num_samples)
         val_end = train_end + int(dataset_split[1] * self.num_samples)
 
-        train_idx = indices[:train_end]
-        val_idx = indices[train_end:val_end]
-        test_idx = indices[val_end:]
-
-        return train_idx, val_idx, test_idx
+        return (
+            indices[:train_end],
+            indices[train_end:val_end],
+            indices[val_end:],
+        )

@@ -6,6 +6,7 @@ test*
 /wandb
 /resources/DP-LK-online.pdf
 /resources/importance_model.pt
+/models/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

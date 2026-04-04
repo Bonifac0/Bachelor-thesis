@@ -1,9 +1,12 @@
 import torch
 from src.helpers.captum_embedding import get_captum_embedding
-from src.training.model_definitions import ImportancePredictor
 from src.predictor import Classificator
 from src.helpers.importance_vis import make_importance_hyperthermo
 import numpy as np
+from src.training.model_definitions import (
+    ImportancePredictorWithLengthAndHL,
+    ImportancePredictorBasic,
+)
 
 
 """
@@ -13,19 +16,19 @@ python -m src.training.run_model
 
 
 class ModelRunner:
-    def __init__(
-        self,
-        classificator: Classificator,
-        model_path: str = "resources/importance_model.pt",
-    ):
+    """
+    Usefull wraper for running Importance predictor
+    """
+
+    def __init__(self, classificator: Classificator, model, model_path):
         self.classificator = classificator
+        self.model = model
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load checkpoint (model + normalization)
         checkpoint = torch.load(model_path, map_location=self.DEVICE)
 
         # Load model
-        self.model = ImportancePredictor()
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.to(self.DEVICE)
         self.model.eval()
@@ -34,10 +37,11 @@ class ModelRunner:
         norm = checkpoint["normalization"]
         self.mean_emb = norm["mean_emb"].to(self.DEVICE)
         self.std_emb = norm["std_emb"].to(self.DEVICE)
-        self.mean_len = norm["mean_len"].to(self.DEVICE)
-        self.std_len = norm["std_len"].to(self.DEVICE)
+        if self.model.USE_LENGTH:
+            self.mean_len = norm["mean_len"].to(self.DEVICE)
+            self.std_len = norm["std_len"].to(self.DEVICE)
 
-    def normalize_input(
+    def normalize_input_with_len(
         self, x: torch.Tensor, length_feature: torch.Tensor
     ) -> torch.Tensor:
         """
@@ -54,13 +58,15 @@ class ModelRunner:
         emb = get_captum_embedding(self.classificator, seq)  # (N, 1280)
         x = torch.from_numpy(emb).float().to(self.DEVICE)
 
-        # Create length feature for each residue
-        seq_len = torch.full(
-            (x.shape[0], 1), fill_value=len(seq), device=x.device, dtype=x.dtype
-        )
-
-        # Normalize embeddings and length feature
-        x = self.normalize_input(x, seq_len)
+        if self.model.USE_LENGTH:
+            # Create length feature for each residue
+            seq_len = torch.full(
+                (x.shape[0], 1), fill_value=len(seq), device=x.device, dtype=x.dtype
+            )
+            # Normalize embeddings and length feature
+            x = self.normalize_input_with_len(x, seq_len)
+        else:
+            x = (x - self.mean_emb) / self.std_emb
 
         # Forward pass
         with torch.no_grad():
@@ -71,8 +77,14 @@ class ModelRunner:
 
 
 if __name__ == "__main__":
+    # MODEL_PATH = "models/basic.pt"
+    # model = ImportancePredictorBasic()
+
+    MODEL_PATH = "models/len_and_HL.pt"
+    model = ImportancePredictorWithLengthAndHL()
+
     classificator = Classificator()
-    runner = ModelRunner(classificator, "resources/importance_model.pt")
+    runner = ModelRunner(classificator, model, MODEL_PATH)
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory

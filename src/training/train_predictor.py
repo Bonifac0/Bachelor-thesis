@@ -1,13 +1,16 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.training.model_definitions import ImportancePredictor, DatasetHandler
 import os
 import wandb
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from scipy.special import expit  # for sigmoid
-from datetime import datetime
-import json
+
+from src.training.model_definitions import (
+    DatasetHandler,
+    ImportancePredictorWithLengthAndHL,
+    ImportancePredictorBasic,
+)
 
 """
 to run:
@@ -51,14 +54,21 @@ def evaluate_model(model, dataloader, criterion, device):
 
 
 def main():
+    # ARCHITECTURE = "basic"
+    ARCHITECTURE = "len_and_HL"
 
-    # =========================
-    # Configuration
-    # =========================
-    # The model configuration in src/training/model_definitions.py
+    match ARCHITECTURE:
+        case "basic":
+            MODE = "basic_1280"
+            model = ImportancePredictorBasic()
+        case "len_and_HL":
+            MODE = "basic_1280_with_len"
+            model = ImportancePredictorWithLengthAndHL()
 
-    # MODE = "basic_1280"
-    MODE = "basic_1280_with_len"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    MODEL_PATH = f"models/{ARCHITECTURE}.pt"
     X_PATH = f"training_data/{MODE}/X.dat"
     Y_PATH = f"training_data/{MODE}/y.dat"
     LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
@@ -68,7 +78,7 @@ def main():
 
     EPOCHS = 50  # upper bound
     LR = 1e-3
-    WEIGHT_DECAY = 1e-5  # L2 regularization
+    WEIGHT_DECAY = 1e-5  # L2 regularization # TODO maybe delete
 
     DATASET_SPLIT = (0.6, 0.2, 0.2)
 
@@ -77,7 +87,7 @@ def main():
 
     wandb.init(
         project="importance-predictor",
-        name="basic_wlen_lr=e-3_hl=16",
+        name=ARCHITECTURE,
         config={
             "mode": MODE,
             "epochs": EPOCHS,
@@ -86,8 +96,8 @@ def main():
             "dataset_split": DATASET_SPLIT,
             "patience": PATIENCE,
             "min_delta": MIN_DELTA,
-            "model": "ImportancePredictor",
-            "features": ImportancePredictor.FEATURES,
+            "model": model.NAME,
+            "features": model.FEATURES,
         },
     )
 
@@ -99,13 +109,10 @@ def main():
         X_PATH,
         dtype=np.float16,
         mode="r",
-        shape=(TOTAL_RESIDUES, ImportancePredictor.FEATURES),
+        shape=(TOTAL_RESIDUES, model.FEATURES),
     )
     y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
-    dataset = DatasetHandler(X, y, DATASET_SPLIT)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ImportancePredictor().to(device)
+    dataset = DatasetHandler(X, y, DATASET_SPLIT, use_length=model.USE_LENGTH)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
@@ -152,7 +159,7 @@ def main():
         )
 
         print(
-            f"Epoch {epoch + 1}/{EPOCHS} | "
+            f"Epoch {(epoch + 1):02}/{EPOCHS} | "
             f"Train Loss: {train_loss:.6f} | "
             f"Val Loss: {val_loss:.6f} | "
             f"Val Precision: {val_metrics['precision']:.4f} | "
@@ -177,37 +184,35 @@ def main():
     # Save model + normalization and log to W&B
     # =========================
 
-    model_path = "resources/importance_model.pt"
-
     # Save everything in one checkpoint
     checkpoint = {
         "model_state_dict": model.state_dict(),
-        "normalization": dataset.norm_stats,  # mean/std for embeddings & length
-        "features": ImportancePredictor.FEATURES,
+        "normalization": dataset.norm_stats,  # mean/std
+        "features": model.FEATURES,
         "mode": MODE,
     }
 
     # Save locally
-    torch.save(checkpoint, model_path)
+    torch.save(checkpoint, MODEL_PATH)
 
     # Create W&B artifact
     artifact = wandb.Artifact(
-        name="importance_model",
+        name="model.NAME",
         type="model",
         metadata={
             "mode": MODE,
             "best_val_loss": best_val_loss,
-            "features": ImportancePredictor.FEATURES,
+            "features": model.FEATURES,
         },
     )
 
     # Add the local checkpoint file
-    artifact.add_file(model_path)
+    artifact.add_file(MODEL_PATH)
 
     # Log artifact to W&B
     wandb.log_artifact(artifact)
 
-    print(f"Model and normalization stats saved to {model_path} and logged to W&B")
+    print(f"Model and normalization stats saved to {MODEL_PATH} and logged to W&B")
 
     # -------- Testing --------
     test_loss, test_metrics, y_pred, y_true = evaluate_model(
@@ -294,17 +299,17 @@ def main():
     # Standard amino acids
     AMINO_ACIDS = list("ACDEFGHIKLMNPQRSTVWY")
 
-    table = wandb.Table(
-        columns=[
-            "AA_name",
-            "AA_f1",
-            "AA_accuracy",
-            "AA_pecision",
-            "AA_recall",
-            "AA_count",
-            "run_name",
-        ]
-    )
+    # table = wandb.Table(
+    #     columns=[
+    #         "AA_name",
+    #         "AA_f1",
+    #         "AA_accuracy",
+    #         "AA_pecision",
+    #         "AA_recall",
+    #         "AA_count",
+    #         "run_name",
+    #     ]
+    # )
 
     for i, aa in enumerate(AMINO_ACIDS):
         mask = test_aa == aa
@@ -320,31 +325,31 @@ def main():
 
             group_name = f"AA_{aa}"
 
-            # wandb.log(
-            #     {
-            #         "AA_id": i,
-            #         "AA_name": group_name,
-            #         "AA_test_accuracy": acc,
-            #         "AA_test_f1": f1,
-            #         "AA_test_precision": prec,
-            #         "AA_test_recall": rec,
-            #         "AA_test_count": np.sum(mask),
-            #     }
-            # )
-            table.add_data(
-                group_name,
-                f1,
-                acc,
-                prec,
-                rec,
-                np.sum(mask),
-                wandb.run.name,  # important for grouping!
+            wandb.log(
+                {
+                    "AA_id": i,
+                    "AA_name": group_name,
+                    "AA_test_accuracy": acc,
+                    "AA_test_f1": f1,
+                    "AA_test_precision": prec,
+                    "AA_test_recall": rec,
+                    "AA_test_count": np.sum(mask),
+                }
             )
+            # table.add_data(
+            #     group_name,
+            #     f1,
+            #     acc,
+            #     prec,
+            #     rec,
+            #     np.sum(mask),
+            #     wandb.run.name,  # important for grouping!
+            # )
 
             print(
                 f"AA {aa} | Samples: {np.sum(mask):6} | Acc: {acc:.4f} | F1: {f1:.4f}"
             )
-    wandb.log({"AA_table": table})
+    # wandb.log({"AA_table": table})
 
     wandb.finish()
 

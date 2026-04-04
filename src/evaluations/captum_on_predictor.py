@@ -2,7 +2,7 @@ from captum.attr import IntegratedGradients
 import torch
 import numpy as np
 import os
-from src.training.model_definitions import ImportancePredictor
+from src.training.model_definitions import ImportancePredictorWithLength
 
 """
 to run:
@@ -23,7 +23,7 @@ X = np.memmap(
     X_PATH,
     dtype=np.float16,
     mode="r",
-    shape=(TOTAL_RESIDUES, ImportancePredictor.FEATURES),
+    shape=(TOTAL_RESIDUES, ImportancePredictorWithLength.FEATURES),
 )
 # y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 
@@ -35,7 +35,7 @@ baseline = torch.zeros_like(inp)
 baseline[:, :1280] = 0  # embeddings off
 baseline[:, 1280] = 0  # average length
 
-model = ImportancePredictor()
+model = ImportancePredictorWithLength()
 model.eval()
 
 ig = IntegratedGradients(model)
