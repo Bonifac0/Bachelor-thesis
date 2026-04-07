@@ -53,6 +53,48 @@ class ImportancePredictorWithLength(nn.Module):
         return self.linear(x).squeeze(-1)
 
 
+class ImportancePredictorWith2HL(nn.Module):
+    """
+    Basic with hidel layer
+    """
+
+    FEATURES = 1280
+    USE_LENGTH = False
+
+    def __init__(self, first_hidden_dim: int = 64, second_hidden_dim: int = 16):
+        super().__init__()
+
+        self.model = nn.Sequential(
+            nn.Linear(self.FEATURES, first_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(first_hidden_dim, second_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(second_hidden_dim, 1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x).squeeze(-1)
+
+
+class ImportancePredictorAllClassWithHL(nn.Module):
+    """
+    Basic with hidel layer
+    """
+
+    FEATURES = 1280 * 4
+    USE_LENGTH = False
+
+    def __init__(self, hidden_dim: int = 16):
+        super().__init__()
+
+        self.model = nn.Sequential(
+            nn.Linear(self.FEATURES, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x).squeeze(-1)
+
+
 class ImportancePredictorWithHL(nn.Module):
     """
     Basic with hidel layer
@@ -64,7 +106,6 @@ class ImportancePredictorWithHL(nn.Module):
     def __init__(self, hidden_dim: int = 16):
         super().__init__()
 
-        # Small hidden layer to allow length-dependent adjustments
         self.model = nn.Sequential(
             nn.Linear(self.FEATURES, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
         )

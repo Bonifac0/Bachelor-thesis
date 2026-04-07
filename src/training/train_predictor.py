@@ -13,6 +13,8 @@ from src.training.model_definitions import (
     ImportancePredictorWithHL,
     ImportancePredictorWithNormalizatio,
     ImportancePredictorBasic,
+    ImportancePredictorWith2HL,
+    ImportancePredictorAllClassWithHL,
 )
 
 """
@@ -57,15 +59,19 @@ def evaluate_model(model, dataloader, criterion, device):
 
 
 def main(ARCHITECTURE):
-    # ARCHITECTURE = "basic"
-    # ARCHITECTURE = "len_and_HL_16"
-    # ARCHITECTURE = "length"
-    # ARCHITECTURE = "normalization"
-    # ARCHITECTURE = "HL_16"
+    EPOCHS = 50  # upper bound
+    LR = 1e-3  # default
+    WEIGHT_DECAY = 1e-5  # L2 regularization # TODO maybe delete
+
+    DATASET_SPLIT = (0.6, 0.2, 0.2)
+
+    PATIENCE = 3
+    MIN_DELTA = 1e-6
 
     match ARCHITECTURE:
         case "basic":
             MODE = "basic_1280"
+            LR = 1e-2
             model = ImportancePredictorBasic()
         case "len_and_HL_16":
             MODE = "basic_1280_with_len"
@@ -73,6 +79,7 @@ def main(ARCHITECTURE):
             model = ImportancePredictorWithLengthAndHL(HL_dim)
         case "length":
             MODE = "basic_1280_with_len"
+            LR = 1e-2
             model = ImportancePredictorWithLength()
         case "normalization":
             MODE = "basic_1280"
@@ -81,6 +88,16 @@ def main(ARCHITECTURE):
             MODE = "basic_1280"
             HL_dim = 16
             model = ImportancePredictorWithHL(HL_dim)
+        case "2HL_64_16":
+            MODE = "basic_1280"
+            F_HD_dim = 64
+            S_HD_dim = 16
+            model = ImportancePredictorWith2HL(F_HD_dim, S_HD_dim)
+        case "all_class_HL_16":
+            MODE = "all_1280*4"
+            HL_dim = 16
+            LR = 2e-4
+            model = ImportancePredictorAllClassWithHL(HL_dim)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -92,15 +109,6 @@ def main(ARCHITECTURE):
     AA_PATH = f"training_data/{MODE}/amino_acids.txt"
 
     TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
-
-    EPOCHS = 50  # upper bound
-    LR = 1e-3
-    WEIGHT_DECAY = 1e-5  # L2 regularization # TODO maybe delete
-
-    DATASET_SPLIT = (0.6, 0.2, 0.2)
-
-    PATIENCE = 3
-    MIN_DELTA = 1e-6
 
     wandb.init(
         project="importance-predictor",
@@ -341,6 +349,7 @@ def main(ARCHITECTURE):
 
 
 if __name__ == "__main__":
-    A = ["basic", "len_and_HL_16", "length", "normalization", "HL_16"]
+    A = ["basic", "length", "all_class_HL_16"]
     for a in A:
+        print(f"STARTING: {a}")
         main(a)
