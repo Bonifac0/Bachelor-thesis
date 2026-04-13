@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # MODEL_PATH = "models/basic.pt"
     # model = ImportancePredictorBasic()
 
-    MODEL_PATH = "models/len_and_HL.pt"
+    MODEL_PATH = "models/len_and_HL_16.pt"
     model = ImportancePredictorWithLengthAndHL()
 
     classificator = Classificator()

@@ -4,8 +4,9 @@ from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
+from src.training.model_definitions import ImportancePredictorWithHL
 import numpy as np
-import json
+
 
 """
 to run:
@@ -113,9 +114,23 @@ def aggregate_embedding(ig_embedding: np.ndarray, eps: float = 1e-12) -> np.ndar
     return l1 / (l1.max() + eps)
 
 
-if __name__ == "__main__":
+def aggregate_log_interpolation(attributions):
+    minimum = -1.5
+    maximum = 0.954
+    steepnes = 10
+
+    s = np.abs(attributions).sum(axis=-1)
+    log_arr = np.log10(s)
+    norm = np.clip((log_arr - minimum) / (maximum - minimum), 0, 1)
+    return 1 / (1 + np.exp(-steepnes * (norm - 0.5)))
+
+
+def main():
+    MODEL_PATH = "models/HL_16.pt"
+    model = ImportancePredictorWithHL()
+
     classificator = Classificator()
-    runner = ModelRunner(classificator)
+    runner = ModelRunner(classificator, model, MODEL_PATH)
 
     proteins = [
         # {
@@ -129,13 +144,31 @@ if __name__ == "__main__":
         #     "mutant": "AYFLRAETGAATPNKWPWGDVAIIADVRMEDDVIKKFRA",
         # },
         {
-            "prot_id": "A0A5J4KW93",
-            "domain": "IVIPDDYQDAVRNLDCFSKLAGHEVTVYQDSVEDVETLAARFQDAEALVLIRERTAITEDLLARLPKLNFISQTGRGIPHIDVDACTRHGIPVAVGGGSPYATAELTWVWSW",
-            "mutant": "PVIPWDYQDAVRILDCFSKLAGHEVTVYQYSVEDVEKLAARFQDAEALVLIMRRTAITEDLLYRLPKLNFIKQTGRGIPHIDVDVCRRHGIPVAVGGGSPYATAELTWVWSW",
+            "prot_id": "cyril",
+            "domain": "FLQLEDIHPSAVEALKQDGYHQTETHTHAPIGAELIKAIGNAHFVGLRSRTRLTEEVQSQAAKLTAIGCFCIGTNQVDLPAANGSSAEAASDAHIR",
+            "mutant": "FLGLEDIPPEAVEALKMYGYFQTETHTHAPIGAELIKAIFMAHFVGKRSRTRLTEEVQSEAAKLTAIGCFCIGTNQVNLPAANGSSAERASDAHVR",
         },
+        {
+            "prot_id": "dave",
+            "domain": "VVSLDKISDRMKSLIRSKLHADFEIVFCENDRDVHNHISSANVLITFTRGISKEWMEQAETCRFIQKLGAGVNNIDLETASNRGIPVSMTKGGNARSVAEHAVALMMMVFKQMNIAHNEIVNKGTHSRCRSRCVRAGADRTRTSFYYIDQYGAHAAHR",
+            "mutant": "VVSLDKISRRMKSLIRSYLHKDFEIVFCENDRDVHNHISSANVLITFTWGISKEWIEQAETCIFIQKLGAGVNNIDLEVASERGPPVSMTKVGFARSVAEHAVALMMMVFKQMNIAWREIVNKGTHSRCRSRCVRAGADRTRTSFYYIDQYGAHARHR",
+        },
+        {
+            "prot_id": "emil",
+            "domain": "LLVAYPTRPRQMALLAEAYTIHRLDLAEDKVAMLVEVGPRCTAMLCNGHVTIDEAFLAQVPNLRIAASSSVGYDTIDVPALTRAGVRLTNTPDVLTDDVADTA",
+            "mutant": "LLVAYPTRPRQMALLAEAYTIHVLDLAEFKVAMLVVVGFRCTAMLCNGHVTDKEAFLWIVPNLRIAASSSVGYDTIDVWALTRAGVRLYNIPDVLTDDVADTA",
+        },
+        {
+            "prot_id": "fanda",
+            "domain": "MIKVISRYCVSYDNVDIEAVKDLRILVTSSAVGYVIIIAEHTIN",
+            "mutant": "MIKVISRYTVSYDNVPIEAVKDLRILVTSSAVGYVIIIAEHTIN",
+        },
+        # {
+        #     "prot_id": "A0A5J4KW93",
+        #     "domain": "IVIPDDYQDAVRNLDCFSKLAGHEVTVYQDSVEDVETLAARFQDAEALVLIRERTAITEDLLARLPKLNFISQTGRGIPHIDVDACTRHGIPVAVGGGSPYATAELTWVWSW",
+        #     "mutant": "PVIPWDYQDAVRILDCFSKLAGHEVTVYQYSVEDVEKLAARFQDAEALVLIMRRTAITEDLLYRLPKLNFIKQTGRGIPHIDVDVCRRHGIPVAVGGGSPYATAELTWVWSW",
+        # },
     ]
-    # with open("selected_dom_mut_pair.json", "r") as f:
-    #     proteins = json.load(f)
 
     protein_count = len(proteins)
     eta = ETA(protein_count)
@@ -146,7 +179,9 @@ if __name__ == "__main__":
     )
 
     counter_all = 0
-    counter_correct = 0
+    pred_correct = 0
+    agg_correct = 0
+    check_correct = 0
 
     for idx, protein in enumerate(proteins):
         probability = (
@@ -157,32 +192,39 @@ if __name__ == "__main__":
         pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
         pred_dom: np.ndarray = runner.predict_importance(protein["domain"])
 
-        difference = [
-            1 if d != m else 0 for d, m in zip(protein["domain"], protein["mutant"])
-        ]
+        # real_decrease: np.ndarray = use_chaotic_mutations(
+        #     classificator, protein["mutant"], probability[1]
+        # )
+
+        mut_attribution = get_captum_embedding(classificator, protein["mutant"])
+        dom_attribution = get_captum_embedding(classificator, protein["domain"])
+
+        aggrt_mut = aggregate_log_interpolation(mut_attribution)
+        aggrt_dom = aggregate_log_interpolation(dom_attribution)
+
+        captum_sum_mut = np.abs(mut_attribution).sum(axis=-1)
+        captum_sum_dom = np.abs(dom_attribution).sum(axis=-1)
+        captum_sum_treshold = 0.9052734375
 
         for j, (d, m) in enumerate(zip(protein["domain"], protein["mutant"])):
             if d != m:
                 counter_all += 1
                 if pred_dom[j] < 0.5 and pred_mut[j] > 0.5:
-                    counter_correct += 1
-
-        # real_decrease: np.ndarray = use_chaotic_mutations(
-        #     classificator, protein["mutant"], probability[1]
-        # )
-
-        # mut_embedding = get_captum_embedding(classificator, protein["mutant"])
-        # dom_embedding = get_captum_embedding(classificator, protein["domain"])
-
-        # mut_cap_importance = aggregate_embedding(mut_embedding)
-        # dom_cap_importance = aggregate_embedding(dom_embedding)
+                    pred_correct += 1
+                if aggrt_dom[j] < 0.5 and aggrt_mut[j] > 0.5:
+                    check_correct += 1
+                if (
+                    captum_sum_dom[j] < captum_sum_treshold
+                    and captum_sum_mut[j] > captum_sum_treshold
+                ):
+                    agg_correct += 1
 
         data = np.row_stack(
             [
                 pred_mut,
                 pred_dom,
-                # mut_cap_importance,
-                # dom_cap_importance,
+                aggrt_mut,
+                aggrt_dom,
                 # real_decrease,
             ]
         )
@@ -190,8 +232,8 @@ if __name__ == "__main__":
         labels = [
             "Predictor mutant",
             "Predictor domain",
-            # "Captum relative mutant",
-            # "Captum relative domain",
+            "Captum relative mutant",
+            "Captum relative domain",
             # "Real decrease",
         ]
 
@@ -199,26 +241,26 @@ if __name__ == "__main__":
             protein, data, probability, labels, outdir="test_importance/full"
         )
 
-        # data_only_mut = np.row_stack(
-        #     [
-        #         pred_mut,
-        #         mut_cap_importance,
-        #         # real_decrease,
-        #     ]
-        # )
+        data_only_mut = np.row_stack(
+            [
+                pred_mut,
+                aggrt_mut,
+                # real_decrease,
+            ]
+        )
 
-        # labels_only_mut = [
-        #     "Predictor mutant",
-        #     "Captum relative mutant",
-        #     # "Real decrease",
-        # ]
-        # make_importance_general(
-        #     protein,
-        #     data_only_mut,
-        #     probability,
-        #     labels_only_mut,
-        #     outdir="test_importance/only_mut",
-        # )
+        labels_only_mut = [
+            "Predictor mutant",
+            "Captum relative mutant",
+            # "Real decrease",
+        ]
+        make_importance_general(
+            protein,
+            data_only_mut,
+            probability,
+            labels_only_mut,
+            outdir="test_importance/only_mut",
+        )
 
         print(
             f"Tested protein {idx + 1}/{protein_count} {eta.print_eta(idx + 1)}",
@@ -226,4 +268,10 @@ if __name__ == "__main__":
         )
     print()
     eta.print_elapsed()
-    print(counter_correct / counter_all)
+    print(f"Predictrion accuracy: {pred_correct / counter_all}")
+    print(f"Aggregation accuracy: {agg_correct / counter_all}")
+    print(check_correct - agg_correct)
+
+
+if __name__ == "__main__":
+    main()

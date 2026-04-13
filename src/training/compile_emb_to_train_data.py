@@ -82,9 +82,6 @@ def main():
     emb_idx = 0
     out_idx = 0
 
-    all_domain = "".join([p["domain"] for p in proteins])
-    all_mutant = "".join([p["mutant"] for p in proteins])
-
     aa_out = []
 
     for p in proteins:

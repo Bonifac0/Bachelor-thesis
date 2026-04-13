@@ -240,16 +240,17 @@ class DatasetHandler:
         # =========================
         # Create datasets
         # =========================
+        rd = ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len)
         train_set = Subset(
-            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            rd,
             train_idx,
         )
         val_set = Subset(
-            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            rd,
             val_idx,
         )
         test_set = Subset(
-            ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len),
+            rd,
             test_idx,
         )
 
