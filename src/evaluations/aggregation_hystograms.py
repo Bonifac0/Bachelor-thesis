@@ -12,10 +12,10 @@ Y_PATH = "training_data/basic_1280/y.dat"
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
 
-def sigmoid(x):
-    k = 10
-    exponent = -k * (x - 0.5)
-    return 1 / (1 + np.exp(exponent))
+def aggregate_log_sigmoid(s, norm):
+    steepnes = 4
+    log_arr = np.log10(s)
+    return 1 / (1 + np.exp(-steepnes * (log_arr - norm)))
 
 
 X = np.memmap(
@@ -39,13 +39,11 @@ plt.title("Histogram of Array Values")
 plt.savefig("histogram.png", dpi=300, bbox_inches="tight")
 plt.close()
 
+norm = np.log10(np.median(s))
+print(f"Norm: {norm}")
+sigmoided = aggregate_log_sigmoid(s, norm)
 
-minimum = -1.5
-maximum = 0.954
 
-log_arr = np.log10(s)
-normalized = (log_arr - minimum) / (maximum - minimum)
-sigmoided = sigmoid(normalized)
 print(sigmoided.mean())
 plt.hist(sigmoided, bins=100)
 plt.xlabel("Normalized Value (0-1)")

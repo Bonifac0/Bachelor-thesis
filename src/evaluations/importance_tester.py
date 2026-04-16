@@ -114,15 +114,12 @@ def aggregate_embedding(ig_embedding: np.ndarray, eps: float = 1e-12) -> np.ndar
     return l1 / (l1.max() + eps)
 
 
-def aggregate_log_interpolation(attributions):
-    minimum = -1.5
-    maximum = 0.954
-    steepnes = 10
-
-    s = np.abs(attributions).sum(axis=-1)
+def aggregate_log_sigmoid(attribution):
+    s = np.abs(attribution).sum(axis=-1)
+    NORM_MEDIAN = -0.275390625
+    steepnes = 4
     log_arr = np.log10(s)
-    norm = np.clip((log_arr - minimum) / (maximum - minimum), 0, 1)
-    return 1 / (1 + np.exp(-steepnes * (norm - 0.5)))
+    return 1 / (1 + np.exp(-steepnes * (log_arr - NORM_MEDIAN)))
 
 
 def main():
@@ -199,8 +196,8 @@ def main():
         mut_attribution = get_captum_embedding(classificator, protein["mutant"])
         dom_attribution = get_captum_embedding(classificator, protein["domain"])
 
-        aggrt_mut = aggregate_log_interpolation(mut_attribution)
-        aggrt_dom = aggregate_log_interpolation(dom_attribution)
+        aggrt_mut = aggregate_log_sigmoid(mut_attribution)
+        aggrt_dom = aggregate_log_sigmoid(dom_attribution)
 
         captum_sum_mut = np.abs(mut_attribution).sum(axis=-1)
         captum_sum_dom = np.abs(dom_attribution).sum(axis=-1)
@@ -212,12 +209,12 @@ def main():
                 if pred_dom[j] < 0.5 and pred_mut[j] > 0.5:
                     pred_correct += 1
                 if aggrt_dom[j] < 0.5 and aggrt_mut[j] > 0.5:
-                    check_correct += 1
+                    agg_correct += 1
                 if (
                     captum_sum_dom[j] < captum_sum_treshold
                     and captum_sum_mut[j] > captum_sum_treshold
                 ):
-                    agg_correct += 1
+                    check_correct += 1
 
         data = np.row_stack(
             [
