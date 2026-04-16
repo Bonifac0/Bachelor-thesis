@@ -201,7 +201,7 @@ def main():
 
         captum_sum_mut = np.abs(mut_attribution).sum(axis=-1)
         captum_sum_dom = np.abs(dom_attribution).sum(axis=-1)
-        captum_sum_treshold = 0.9052734375
+        captum_sum_treshold = 0.53  # np.median(np.abs(X[).sum(axis=-1))
 
         for j, (d, m) in enumerate(zip(protein["domain"], protein["mutant"])):
             if d != m:
