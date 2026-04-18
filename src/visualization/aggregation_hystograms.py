@@ -3,8 +3,9 @@ import numpy as np
 import os
 
 """
-to run:
 python -m src.evaluations.aggregation_hystograms
+
+create hystogtam for sum function before and after transformation
 """
 
 X_PATH = "training_data/basic_1280/X.dat"

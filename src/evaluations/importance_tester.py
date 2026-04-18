@@ -9,8 +9,9 @@ import numpy as np
 
 
 """
-to run:
 python -m src.evaluations.importance_tester
+
+main script for testing and comparing importance prediktor with sum method
 """
 
 

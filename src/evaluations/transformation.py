@@ -3,6 +3,8 @@ import os
 
 """
 python -m src.evaluations.transformation
+
+helper for developing transformation fcn for sum method
 """
 
 

@@ -6,6 +6,7 @@ test*
 /wandb
 /resources/DP-LK-online.pdf
 /resources/importance_model.pt
+/resources/histogram*
 /models/
 /documentation/*
 

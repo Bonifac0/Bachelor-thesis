@@ -5,10 +5,11 @@ import os
 from src.training.model_definitions import ImportancePredictorWithLength
 
 """
-to run:
 python -m src.evaluations.captum_on_predictor
-"""
 
+obsolete, so far no useful results
+apply captum on predikcor to see importance of input
+"""
 
 GET_FIRST = 1
 

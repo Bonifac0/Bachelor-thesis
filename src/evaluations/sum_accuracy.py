@@ -3,6 +3,8 @@ import os
 
 """
 python -m src.evaluations.sum_accuracy
+
+calculate accuracy of baseline sum method
 """
 
 
@@ -24,7 +26,7 @@ indices = rng.permutation(TOTAL_RESIDUES)
 
 
 # 60:40 split
-split = int(0.6 * TOTAL_RESIDUES)
+split = int(0.8 * TOTAL_RESIDUES)
 train_idx = indices[:split]
 test_idx = indices[split:]
 
