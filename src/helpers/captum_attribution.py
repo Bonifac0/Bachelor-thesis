@@ -4,9 +4,9 @@ import numpy as np
 import torch
 
 
-def get_captum_embedding_all_classes(mdl: Classificator, inp: str) -> np.ndarray:
+def get_captum_attribution_all_classes(mdl: Classificator, inp: str) -> np.ndarray:
     """
-    Return captum embedding for all classes concatenated
+    Return captum attributions for all classes concatenated
     1280 * 4
     """
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -36,9 +36,9 @@ def get_captum_embedding_all_classes(mdl: Classificator, inp: str) -> np.ndarray
     return np.concatenate(attrs_per_class, axis=1)
 
 
-def get_captum_embedding(mdl: Classificator, inp: str) -> np.ndarray:
+def get_captum_attribution(mdl: Classificator, inp: str) -> np.ndarray:
     """
-    Return captum embedding
+    Return captum attributions
     1280
     """
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -63,5 +63,5 @@ def get_captum_embedding(mdl: Classificator, inp: str) -> np.ndarray:
 if __name__ == "__main__":  # only for testing
     classificator = Classificator()
 
-    result = get_captum_embedding(classificator, "RSGLYAPPNWEYGSTMVVPP")
+    result = get_captum_attribution(classificator, "RSGLYAPPNWEYGSTMVVPP")
     print(result.shape)

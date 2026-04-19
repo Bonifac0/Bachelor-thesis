@@ -1,5 +1,5 @@
 import torch
-from src.helpers.captum_embedding import get_captum_embedding
+from src.helpers.captum_attribution import get_captum_attribution
 from src.predictor import Classificator
 from src.helpers.importance_vis import make_importance_hyperthermo
 import numpy as np
@@ -72,8 +72,8 @@ class ModelRunner:
 
         # Load normalization stats
         norm = checkpoint["normalization"]
-        self.mean_emb = norm["mean_emb"].to(self.DEVICE)
-        self.std_emb = norm["std_emb"].to(self.DEVICE)
+        self.mean_atr = norm["mean_atr"].to(self.DEVICE)
+        self.std_atr = norm["std_atr"].to(self.DEVICE)
         if self.model.USE_LENGTH:
             self.mean_len = norm["mean_len"].to(self.DEVICE)
             self.std_len = norm["std_len"].to(self.DEVICE)
@@ -82,28 +82,28 @@ class ModelRunner:
         self, x: torch.Tensor, length_feature: torch.Tensor
     ) -> torch.Tensor:
         """
-        Normalize embeddings and length feature separately.
+        Normalize attributions and length feature separately.
         x: (N, 1280)
         length_feature: (N, 1)
         """
-        emb = (x - self.mean_emb) / self.std_emb
+        atr = (x - self.mean_atr) / self.std_atr
         length = (length_feature - self.mean_len) / self.std_len
-        return torch.cat([emb, length], dim=-1)
+        return torch.cat([atr, length], dim=-1)
 
     def predict_importance(self, seq) -> np.ndarray:
-        # Compute embeddings
-        emb = get_captum_embedding(self.classificator, seq)  # (N, 1280)
-        x = torch.from_numpy(emb).float().to(self.DEVICE)
+        # Compute attributions
+        atr = get_captum_attribution(self.classificator, seq)  # (N, 1280)
+        x = torch.from_numpy(atr).float().to(self.DEVICE)
 
         if self.model.USE_LENGTH:
             # Create length feature for each residue
             seq_len = torch.full(
                 (x.shape[0], 1), fill_value=len(seq), device=x.device, dtype=x.dtype
             )
-            # Normalize embeddings and length feature
+            # Normalize attributions and length feature
             x = self.normalize_input_with_len(x, seq_len)
         else:
-            x = (x - self.mean_emb) / self.std_emb
+            x = (x - self.mean_atr) / self.std_atr
 
         # Forward pass
         with torch.no_grad():

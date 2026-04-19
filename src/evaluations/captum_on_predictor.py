@@ -35,7 +35,7 @@ inp.requires_grad_(True)
 
 # baseline = torch.tensor(y[:GET_FIRST])
 baseline = torch.zeros_like(inp)
-baseline[:, :1280] = 0  # embeddings off
+baseline[:, :1280] = 0  # attribution off
 baseline[:, 1280] = 0  # average length
 
 

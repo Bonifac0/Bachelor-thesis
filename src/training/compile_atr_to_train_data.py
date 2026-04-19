@@ -2,8 +2,7 @@ import json
 import numpy as np
 
 """
-to run:
-python -m src.training.compile_emb_to_train_data
+python -m src.training.compile_atr_to_train_data
 """
 
 # FEATURES = 1280  # for one class
@@ -11,8 +10,8 @@ python -m src.training.compile_emb_to_train_data
 FEATURES = 1281
 
 MODE = "basic_1280_with_len"
-DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
-MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
+DOMAIN_ATB_PATH = f"training_data/{MODE}/domain_attribution.dat"
+MUTANT_ATB_PATH = f"training_data/{MODE}/mutant_attribution.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
 OUT_X_PATH = f"training_data/{MODE}/X.dat"
@@ -36,15 +35,15 @@ def main():
 
     total_residues = sum(len(p["domain"]) for p in proteins)
 
-    domain_emb = np.memmap(
-        DOMAIN_EMB_PATH,
+    domain_atb = np.memmap(
+        DOMAIN_ATB_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
     )
 
-    mutant_emb = np.memmap(
-        MUTANT_EMB_PATH,
+    mutant_atb = np.memmap(
+        MUTANT_ATB_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
@@ -79,7 +78,7 @@ def main():
         shape=(total_samples,),
     )
 
-    emb_idx = 0
+    atb_idx = 0
     out_idx = 0
 
     aa_out = []
@@ -92,24 +91,24 @@ def main():
 
         for i in range(len(domain_seq)):
             if not mask[i]:
-                emb_idx += 1
+                atb_idx += 1
                 continue
 
-            # domain embedding
-            X[out_idx] = domain_emb[emb_idx]
+            # domain attribution
+            X[out_idx] = domain_atb[atb_idx]
             y[out_idx] = 0
             lengths[out_idx] = len(domain_seq)
             aa_out.append(domain_seq[i])
             out_idx += 1
 
-            # mutant embedding
-            X[out_idx] = mutant_emb[emb_idx]
+            # mutant attribution
+            X[out_idx] = mutant_atb[atb_idx]
             y[out_idx] = 1
             lengths[out_idx] = len(domain_seq)
             aa_out.append(mutant_seq[i])
             out_idx += 1
 
-            emb_idx += 1
+            atb_idx += 1
 
     X.flush()
     y.flush()

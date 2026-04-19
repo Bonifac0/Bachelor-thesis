@@ -10,8 +10,8 @@ python -m src.evaluations.TSNE_vis
 FEATURES = 1280
 
 MODE = "basic_1280"
-DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
-MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
+DOMAIN_ATR_PATH = f"training_data/{MODE}/domain_attribution.dat"
+MUTANT_ATR_PATH = f"training_data/{MODE}/mutant_attribution.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
 # Standard amino acids
@@ -33,15 +33,15 @@ def main():
     # Convert amino acids → indices
     aa_indices = np.array([aa_to_idx.get(aa, -1) for aa in all_sequences])
 
-    domain_emb = np.memmap(
-        DOMAIN_EMB_PATH,
+    domain_atr = np.memmap(
+        DOMAIN_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
     )
 
-    mutant_emb = np.memmap(
-        MUTANT_EMB_PATH,
+    mutant_atr = np.memmap(
+        MUTANT_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
@@ -56,24 +56,24 @@ def main():
         indices = np.random.choice(total_residues, MAX_POINTS, replace=False)
         indices.sort()
 
-        d_subset = domain_emb[indices].astype(np.float32)
-        m_subset = mutant_emb[indices].astype(np.float32)
+        d_subset = domain_atr[indices].astype(np.float32)
+        m_subset = mutant_atr[indices].astype(np.float32)
         aa_subset = aa_indices[indices]
     else:
-        d_subset = domain_emb[:].astype(np.float32)
-        m_subset = mutant_emb[:].astype(np.float32)
+        d_subset = domain_atr[:].astype(np.float32)
+        m_subset = mutant_atr[:].astype(np.float32)
         aa_subset = aa_indices
 
     print("Concatenating...")
-    combined_emb = np.concatenate([d_subset, m_subset], axis=0)
+    combined_atr = np.concatenate([d_subset, m_subset], axis=0)
 
     print("Applying TSNE...")
     tsne = TSNE(n_components=2, random_state=42, n_jobs=-1)
-    reduced_emb = tsne.fit_transform(combined_emb)
+    reduced_atr = tsne.fit_transform(combined_atr)
 
     n_samples = len(d_subset)
-    domain_reduced = reduced_emb[:n_samples]
-    mutant_reduced = reduced_emb[n_samples:]
+    domain_reduced = reduced_atr[:n_samples]
+    mutant_reduced = reduced_atr[n_samples:]
 
     # Visualization
     plt.figure(figsize=(14, 10), dpi=300)

@@ -1,7 +1,7 @@
 import random
 from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
-from src.helpers.captum_embedding import get_captum_embedding
+from src.helpers.captum_attribution import get_captum_attribution
 from src.helpers.print_eta import ETA
 import numpy as np
 
@@ -102,14 +102,14 @@ def use_chaotic_mutations(
     return real_score
 
 
-def aggregate_embedding(ig_embedding: np.ndarray, eps: float = 1e-12) -> np.ndarray:
+def aggregate_attribution(ig_attribution: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     """
     L1 aggregation for an Integrated Gradients embedding attribution.
     """
     # TODO read https://arxiv.org/html/2507.18043v1?utm_source=chatgpt.com
     # source acording to chatbot
 
-    l1 = np.abs(ig_embedding).sum(axis=-1)
+    l1 = np.abs(ig_attribution).sum(axis=-1)
     return l1 / (l1.max() + eps)
 
 
@@ -188,8 +188,12 @@ def main():
         #     classificator, protein["mutant"], probability[1]
         # )
 
-        mut_attribution = get_captum_embedding(runner.classificator, protein["mutant"])
-        dom_attribution = get_captum_embedding(runner.classificator, protein["domain"])
+        mut_attribution = get_captum_attribution(
+            runner.classificator, protein["mutant"]
+        )
+        dom_attribution = get_captum_attribution(
+            runner.classificator, protein["domain"]
+        )
 
         aggrt_mut = aggregate_log_sigmoid(mut_attribution)
         aggrt_dom = aggregate_log_sigmoid(dom_attribution)

@@ -13,11 +13,11 @@ run_model.py
 
 class ImportancePredictorWithLengthAndHL(nn.Module):
     """
-    Residue-level importance predictor for Captum embeddings + protein length.
+    Residue-level importance predictor for Captum embedding attributions + protein length.
     With hidel layer
     """
 
-    FEATURES = 1281  # 1280 embeddings + 1 length
+    FEATURES = 1281  # 1280 embedding + 1 length
     USE_LENGTH = True
 
     def __init__(self, hidden_dim: int = 16):
@@ -30,7 +30,7 @@ class ImportancePredictorWithLengthAndHL(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        x: (N, 1281) tensor, first 1280 = embeddings, last = protein length
+        x: (N, 1281) tensor, first 1280 = attribution, last = protein length
         returns: (N,) logits per residue
         """
         return self.model(x).squeeze(-1)
@@ -41,7 +41,7 @@ class ImportancePredictorWithLength(nn.Module):
     Basic with protein length.
     """
 
-    FEATURES = 1281  # 1280 embeddings + 1 length
+    FEATURES = 1281  # 1280 embedding + 1 length
     USE_LENGTH = True
 
     def __init__(self):
@@ -155,16 +155,16 @@ class ResidueDataset(Dataset):
         self,
         X,
         y,
-        mean_emb,
-        std_emb,
+        mean_atb,
+        std_atb,
         mean_len=None,
         std_len=None,
     ):
         self.X = X
         self.y = y
 
-        self.mean_emb = mean_emb
-        self.std_emb = std_emb
+        self.mean_atb = mean_atb
+        self.std_atb = std_atb
 
         self.mean_len = mean_len
         self.std_len = std_len
@@ -177,15 +177,15 @@ class ResidueDataset(Dataset):
         y = torch.tensor(self.y[idx], dtype=torch.float32)
 
         if self.mean_len is not None:
-            emb = x[:1280]
+            atb = x[:1280]
             length = x[1280:]
 
-            emb = (emb - self.mean_emb) / self.std_emb
+            atb = (atb - self.mean_atb) / self.std_atb
             length = (length - self.mean_len) / self.std_len
 
-            x = torch.cat([emb, length], dim=0)
+            x = torch.cat([atb, length], dim=0)
         else:
-            x = (x - self.mean_emb) / self.std_emb
+            x = (x - self.mean_atb) / self.std_atb
 
         return x, y
 
@@ -209,28 +209,28 @@ class DatasetHandler:
         X_train = X[train_idx].astype(np.float32)
 
         if self.use_length:
-            X_emb = X_train[:, :1280]
+            X_atb = X_train[:, :1280]
             X_len = X_train[:, 1280:]
 
-            mean_emb = torch.from_numpy(X_emb.mean(axis=0)).float()
-            std_emb = torch.from_numpy(X_emb.std(axis=0) + 1e-8).float()
+            mean_atb = torch.from_numpy(X_atb.mean(axis=0)).float()
+            std_atb = torch.from_numpy(X_atb.std(axis=0) + 1e-8).float()
 
             mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
             std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
 
             self.norm_stats = {
-                "mean_emb": mean_emb,
-                "std_emb": std_emb,
+                "mean_atb": mean_atb,
+                "std_atb": std_atb,
                 "mean_len": mean_len,
                 "std_len": std_len,
             }
         else:
-            mean_emb = torch.from_numpy(X_train.mean(axis=0)).float()
-            std_emb = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
+            mean_atb = torch.from_numpy(X_train.mean(axis=0)).float()
+            std_atb = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
 
             self.norm_stats = {
-                "mean_emb": mean_emb,
-                "std_emb": std_emb,
+                "mean_atb": mean_atb,
+                "std_atb": std_atb,
             }
 
             mean_len = std_len = None  # not used
@@ -240,7 +240,7 @@ class DatasetHandler:
         # =========================
         # Create datasets
         # =========================
-        rd = ResidueDataset(X, y, mean_emb, std_emb, mean_len, std_len)
+        rd = ResidueDataset(X, y, mean_atb, std_atb, mean_len, std_len)
         train_set = Subset(
             rd,
             train_idx,

@@ -62,10 +62,10 @@ plt.close()
 runner = ModelRunner("2HL_64_16")
 model = runner.model
 
-# Compute embeddings
+# Compute attributions
 inp = torch.from_numpy(X.copy()).float().to(runner.DEVICE)
 
-inp = (inp - runner.mean_emb) / runner.std_emb
+inp = (inp - runner.mean_atr) / runner.std_atr
 
 
 # Forward pass

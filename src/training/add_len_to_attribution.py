@@ -3,18 +3,17 @@ import numpy as np
 from tqdm import tqdm
 
 """
-to run:
-python -m src.training.add_len_to_embedding
+python -m src.training.add_len_to_attribution
 """
 
 FEATURES = 1280  # for one class
 
 MODE = "basic_1280"
-DOMAIN_EMB_PATH = f"training_data/{MODE}/domain_embedding.dat"
-MUTANT_EMB_PATH = f"training_data/{MODE}/mutant_embedding.dat"
+DOMAIN_ATR_PATH = f"training_data/{MODE}/domain_attribution.dat"
+MUTANT_ATR_PATH = f"training_data/{MODE}/mutant_attribution.dat"
 
-DOMAIN_OUT_PATH = f"training_data/{MODE}_with_len/domain_embedding.dat"
-MUTANT_OUT_PATH = f"training_data/{MODE}_with_len/mutant_embedding.dat"
+DOMAIN_OUT_PATH = f"training_data/{MODE}_with_len/domain_attribution.dat"
+MUTANT_OUT_PATH = f"training_data/{MODE}_with_len/mutant_attribution.dat"
 
 
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
@@ -28,31 +27,31 @@ def main():
     total_residues = sum(prot_lengths)
     residue_prot_lengths = np.repeat(prot_lengths, prot_lengths).astype(np.float16)
 
-    domain_emb = np.memmap(
-        DOMAIN_EMB_PATH,
+    domain_atr = np.memmap(
+        DOMAIN_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
     )
 
-    mutant_emb = np.memmap(
-        MUTANT_EMB_PATH,
+    mutant_atr = np.memmap(
+        MUTANT_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
     )
 
     NEW_FEATURES = FEATURES + 1
-    print(f"Creating new embeddings with shape ({total_residues}, {NEW_FEATURES})...")
+    print(f"Creating new attributions with shape ({total_residues}, {NEW_FEATURES})...")
 
-    domain_emb_out = np.memmap(
+    domain_atr_out = np.memmap(
         DOMAIN_OUT_PATH,
         dtype=np.float16,
         mode="w+",
         shape=(total_residues, NEW_FEATURES),
     )
 
-    mutant_emb_out = np.memmap(
+    mutant_atr_out = np.memmap(
         MUTANT_OUT_PATH,
         dtype=np.float16,
         mode="w+",
@@ -66,16 +65,16 @@ def main():
         len_chunk = residue_prot_lengths[start:end].reshape(-1, 1)
 
         # Domain: Copy 1280 features and append length
-        domain_emb_out[start:end, :FEATURES] = domain_emb[start:end]
-        domain_emb_out[start:end, FEATURES:] = len_chunk
+        domain_atr_out[start:end, :FEATURES] = domain_atr[start:end]
+        domain_atr_out[start:end, FEATURES:] = len_chunk
 
         # Mutant: Copy 1280 features and append length
-        mutant_emb_out[start:end, :FEATURES] = mutant_emb[start:end]
-        mutant_emb_out[start:end, FEATURES:] = len_chunk
+        mutant_atr_out[start:end, :FEATURES] = mutant_atr[start:end]
+        mutant_atr_out[start:end, FEATURES:] = len_chunk
 
     # Flush to ensure data is written to disk
-    domain_emb_out.flush()
-    mutant_emb_out.flush()
+    domain_atr_out.flush()
+    mutant_atr_out.flush()
     print(f"Done. Saved to {DOMAIN_OUT_PATH} and {MUTANT_OUT_PATH}")
 
 
