@@ -2,9 +2,10 @@ import json
 import numpy as np
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+from matplotlib.colors import BoundaryNorm
 
 """
-python -m src.evaluations.TSNE_vis
+python -m src.visualization.TSNE_vis
 """
 
 FEATURES = 1280
@@ -26,11 +27,9 @@ def main():
     prot_lengths = [len(p["domain"]) for p in proteins]
     total_residues = sum(prot_lengths)
 
-    # Extract sequences
     print("Extracting sequences...")
     all_sequences = "".join(p["domain"] for p in proteins)
 
-    # Convert amino acids → indices
     aa_indices = np.array([aa_to_idx.get(aa, -1) for aa in all_sequences])
 
     domain_atr = np.memmap(
@@ -49,8 +48,7 @@ def main():
 
     print(f"Total residues: {total_residues}")
 
-    # Subsampling
-    MAX_POINTS = 10000
+    MAX_POINTS = 5000
     if total_residues > MAX_POINTS:
         print(f"Subsampling to {MAX_POINTS} residues...")
         indices = np.random.choice(total_residues, MAX_POINTS, replace=False)
@@ -67,56 +65,46 @@ def main():
     print("Concatenating...")
     combined_atr = np.concatenate([d_subset, m_subset], axis=0)
 
+    # duplicate aa labels for combined data
+    aa_combined = np.concatenate([aa_subset, aa_subset], axis=0)
+
     print("Applying TSNE...")
     tsne = TSNE(n_components=2, random_state=42, n_jobs=-1)
     reduced_atr = tsne.fit_transform(combined_atr)
 
-    n_samples = len(d_subset)
-    domain_reduced = reduced_atr[:n_samples]
-    mutant_reduced = reduced_atr[n_samples:]
-
     # Visualization
-    plt.figure(figsize=(14, 10), dpi=300)
+    plt.figure(figsize=(14, 10))
 
     cmap = plt.get_cmap("tab20")
 
-    # Plot domain
-    sc1 = plt.scatter(
-        domain_reduced[:, 0],
-        domain_reduced[:, 1],
-        c=aa_subset,
+    # discrete normalization (fixes colorbar alignment)
+    bounds = np.arange(len(AMINO_ACIDS) + 1) - 0.5
+    norm = BoundaryNorm(bounds, cmap.N)
+
+    sc = plt.scatter(
+        reduced_atr[:, 0],
+        reduced_atr[:, 1],
+        c=aa_combined,
         cmap=cmap,
-        marker="o",
+        norm=norm,
         alpha=0.6,
-        s=5,
-        label="Domain",
+        s=10,
+        rasterized=False,
     )
 
-    # Plot mutant
-    sc2 = plt.scatter(
-        mutant_reduced[:, 0],
-        mutant_reduced[:, 1],
-        c=aa_subset,
-        cmap=cmap,
-        marker="s",
-        alpha=0.6,
-        s=5,
-        label="Mutant",
-    )
-
-    # Create colorbar with amino acid labels
-    cbar = plt.colorbar(sc1, ticks=range(len(AMINO_ACIDS)))
+    # Colorbar
+    cbar = plt.colorbar(sc, ticks=np.arange(len(AMINO_ACIDS)))
     cbar.ax.set_yticklabels(AMINO_ACIDS)
     cbar.set_label("Amino Acid")
+    cbar.ax.tick_params(length=0)
 
-    plt.title(f"TSNE colored by Amino Acid ({MODE})")
+    plt.title("TSNE colored by Amino Acid")
     plt.xlabel("TSNE Dimension 1")
     plt.ylabel("TSNE Dimension 2")
-    plt.legend(loc="upper right")
 
-    output_plot = "TSNE_amino_acid_colored.png"
-    plt.savefig(output_plot, bbox_inches="tight")
-    print(f"Plot saved to {output_plot}")
+    plt.savefig("TSNE_amino_acid_colored.pdf", bbox_inches="tight")
+
+    print("Plot saved to TSNE_amino_acid_colored.pdf")
 
 
 if __name__ == "__main__":
