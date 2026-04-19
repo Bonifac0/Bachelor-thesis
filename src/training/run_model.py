@@ -57,8 +57,7 @@ class ModelRunner:
             case "all_class_HL_16":
                 self.model = ImportancePredictorAllClassWithHL(16)
             case _:
-                print("Please select valid ARCHITECTURE")
-                return
+                raise ValueError(f"Invalid ARCHITECTURE: {ARCHITECTURE}")
 
         self.classificator = Classificator()
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -2,7 +2,7 @@ from captum.attr import IntegratedGradients
 import torch
 import numpy as np
 import os
-from src.training.model_definitions import ImportancePredictorWithLength
+from src.training.run_model import ModelRunner
 
 """
 python -m src.evaluations.captum_on_predictor
@@ -19,12 +19,14 @@ Y_PATH = f"training_data/{MODE}/y.dat"
 LENGTHS_PATH = f"training_data/{MODE}/lengths.dat"
 AA_PATH = f"training_data/{MODE}/amino_acids.txt"
 
+runner = ModelRunner("length")
+
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 X = np.memmap(
     X_PATH,
     dtype=np.float16,
     mode="r",
-    shape=(TOTAL_RESIDUES, ImportancePredictorWithLength.FEATURES),
+    shape=(TOTAL_RESIDUES, runner.model.FEATURES),
 )
 # y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
 
@@ -36,10 +38,8 @@ baseline = torch.zeros_like(inp)
 baseline[:, :1280] = 0  # embeddings off
 baseline[:, 1280] = 0  # average length
 
-model = ImportancePredictorWithLength()
-model.eval()
 
-ig = IntegratedGradients(model)
+ig = IntegratedGradients(runner.model)
 
 attributions, delta = ig.attribute(
     inputs=inp,
@@ -47,9 +47,10 @@ attributions, delta = ig.attribute(
     return_convergence_delta=True,
 )
 
-embedding_attr = attributions[:, :1280]  # per-dimension importance
+embedding_attr = attributions[0, :1280]  # per-dimension importance
 length_attr = attributions[:, 1280]  # importance of length feature
+print(embedding_attr.shape)
 
-print(f"Delta: {delta}")
+# print(f"Delta: {delta}")
 print(f"Len importance: {length_attr}")
-print(sum(max(embedding_attr)))
+print(sum(embedding_attr))
