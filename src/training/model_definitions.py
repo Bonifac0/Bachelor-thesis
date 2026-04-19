@@ -114,7 +114,7 @@ class ImportancePredictorWithHL(nn.Module):
         return self.model(x).squeeze(-1)
 
 
-class ImportancePredictorWithNormalizatio(nn.Module):
+class ImportancePredictorWithNormalization(nn.Module):
     """
     Basic with normalization
     """

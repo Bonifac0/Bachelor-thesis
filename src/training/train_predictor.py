@@ -11,7 +11,7 @@ from src.training.model_definitions import (
     ImportancePredictorWithLengthAndHL,
     ImportancePredictorWithLength,
     ImportancePredictorWithHL,
-    ImportancePredictorWithNormalizatio,
+    ImportancePredictorWithNormalization,
     ImportancePredictorBasic,
     ImportancePredictorWith2HL,
     ImportancePredictorAllClassWithHL,
@@ -83,7 +83,7 @@ def main(ARCHITECTURE):
             model = ImportancePredictorWithLength()
         case "normalization":
             MODE = "basic_1280"
-            model = ImportancePredictorWithNormalizatio()
+            model = ImportancePredictorWithNormalization()
         case "HL_16":
             MODE = "basic_1280"
             HL_dim = 16

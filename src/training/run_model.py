@@ -5,28 +5,66 @@ from src.helpers.importance_vis import make_importance_hyperthermo
 import numpy as np
 from src.training.model_definitions import (
     ImportancePredictorWithLengthAndHL,
+    ImportancePredictorWithLength,
+    ImportancePredictorWithHL,
+    ImportancePredictorWithNormalization,
     ImportancePredictorBasic,
+    ImportancePredictorWith2HL,
+    ImportancePredictorAllClassWithHL,
 )
 
 
 """
-to run:
 python -m src.training.run_model
+
+Contain ModelRunner class used for running importance predictor
 """
 
 
 class ModelRunner:
     """
-    Usefull wraper for running Importance predictor
+    Wrapper for initializing an importance prediction model.
+
+    The `ARCHITECTURE` argument selects the model type and corresponding
+    `.pt` file in the models directory.
+
+    Supported values:
+        - "basic" → ImportancePredictorBasic
+        - "len_and_HL_16" → ImportancePredictorWithLengthAndHL (HL=16)
+        - "length" → ImportancePredictorWithLength
+        - "normalization" → ImportancePredictorWithNormalization
+        - "HL_16" → ImportancePredictorWithHL (HL=16)
+        - "2HL_64_16" → ImportancePredictorWith2HL (64, 16)
+        - "all_class_HL_16" → ImportancePredictorAllClassWithHL (HL=16)
+
+    The `Classificator` instance is accasable from outside.
     """
 
-    def __init__(self, classificator: Classificator, model, model_path):
-        self.classificator = classificator
-        self.model = model
+    def __init__(self, ARCHITECTURE: str):
+        match ARCHITECTURE:
+            case "basic":
+                self.model = ImportancePredictorBasic()
+            case "len_and_HL_16":
+                self.model = ImportancePredictorWithLengthAndHL(16)
+            case "length":
+                self.model = ImportancePredictorWithLength()
+            case "normalization":
+                self.model = ImportancePredictorWithNormalization()
+            case "HL_16":
+                self.model = ImportancePredictorWithHL(16)
+            case "2HL_64_16":
+                self.model = ImportancePredictorWith2HL(64, 16)
+            case "all_class_HL_16":
+                self.model = ImportancePredictorAllClassWithHL(16)
+            case _:
+                print("Please select valid ARCHITECTURE")
+                return
+
+        self.classificator = Classificator()
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load checkpoint (model + normalization)
-        checkpoint = torch.load(model_path, map_location=self.DEVICE)
+        checkpoint = torch.load(f"models/{ARCHITECTURE}.pt", map_location=self.DEVICE)
 
         # Load model
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -77,14 +115,7 @@ class ModelRunner:
 
 
 if __name__ == "__main__":
-    # MODEL_PATH = "models/basic.pt"
-    # model = ImportancePredictorBasic()
-
-    MODEL_PATH = "models/len_and_HL_16.pt"
-    model = ImportancePredictorWithLengthAndHL()
-
-    classificator = Classificator()
-    runner = ModelRunner(classificator, model, MODEL_PATH)
+    runner = ModelRunner("HL_16")
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory
@@ -115,6 +146,6 @@ if __name__ == "__main__":
         for i, score in enumerate(importance_scores):
             print(f"{protein[1][i]}\t{score:.4f}")
 
-        probability = classificator.classify([protein])
+        probability = runner.classificator.classify([protein])
         print(probability[0])
         make_importance_hyperthermo(protein, importance_scores, probability[0][3])

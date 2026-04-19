@@ -1,10 +1,8 @@
 import random
-from src.predictor import Classificator
 from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.helpers.captum_embedding import get_captum_embedding
 from src.helpers.print_eta import ETA
-from src.training.model_definitions import ImportancePredictorWithHL
 import numpy as np
 
 
@@ -124,11 +122,7 @@ def aggregate_log_sigmoid(attribution):
 
 
 def main():
-    MODEL_PATH = "models/HL_16.pt"
-    model = ImportancePredictorWithHL()
-
-    classificator = Classificator()
-    runner = ModelRunner(classificator, model, MODEL_PATH)
+    runner = ModelRunner("HL_16")
 
     proteins = [
         # {
@@ -183,8 +177,8 @@ def main():
 
     for idx, protein in enumerate(proteins):
         probability = (
-            classificator.classify([("", protein["domain"])])[0][3],
-            classificator.classify([("", protein["mutant"])])[0][3],
+            runner.classificator.classify([("", protein["domain"])])[0][3],
+            runner.classificator.classify([("", protein["mutant"])])[0][3],
         )
 
         pred_mut: np.ndarray = runner.predict_importance(protein["mutant"])
@@ -194,8 +188,8 @@ def main():
         #     classificator, protein["mutant"], probability[1]
         # )
 
-        mut_attribution = get_captum_embedding(classificator, protein["mutant"])
-        dom_attribution = get_captum_embedding(classificator, protein["domain"])
+        mut_attribution = get_captum_embedding(runner.classificator, protein["mutant"])
+        dom_attribution = get_captum_embedding(runner.classificator, protein["domain"])
 
         aggrt_mut = aggregate_log_sigmoid(mut_attribution)
         aggrt_dom = aggregate_log_sigmoid(dom_attribution)
