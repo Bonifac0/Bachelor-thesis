@@ -14,11 +14,11 @@ from src.training.model_definitions import (
     ImportancePredictorWithNormalization,
     ImportancePredictorBasic,
     ImportancePredictorWith2HL,
+    ImportancePredictorWith3HL,
     ImportancePredictorAllClassWithHL,
 )
 
 """
-to run:
 python -m src.training.train_predictor
 """
 
@@ -86,18 +86,17 @@ def main(ARCHITECTURE):
             model = ImportancePredictorWithNormalization()
         case "HL_16":
             MODE = "basic_1280"
-            HL_dim = 16
-            model = ImportancePredictorWithHL(HL_dim)
+            model = ImportancePredictorWithHL(16)
         case "2HL_64_16":
             MODE = "basic_1280"
-            F_HD_dim = 64
-            S_HD_dim = 16
-            model = ImportancePredictorWith2HL(F_HD_dim, S_HD_dim)
+            model = ImportancePredictorWith2HL(64, 16)
+        case "3HL_64_32_16":
+            MODE = "basic_1280"
+            model = ImportancePredictorWith3HL(64, 32, 16)
         case "all_class_HL_16":
             MODE = "all_1280*4"
-            HL_dim = 16
             LR = 2e-4
-            model = ImportancePredictorAllClassWithHL(HL_dim)
+            model = ImportancePredictorAllClassWithHL(16)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -349,7 +348,7 @@ def main(ARCHITECTURE):
 
 
 if __name__ == "__main__":
-    A = ["basic", "length", "all_class_HL_16"]
+    A = ["3HL_64_32_16"]
     for a in A:
         print(f"STARTING: {a}")
         main(a)

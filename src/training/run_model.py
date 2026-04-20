@@ -10,6 +10,7 @@ from src.training.model_definitions import (
     ImportancePredictorWithNormalization,
     ImportancePredictorBasic,
     ImportancePredictorWith2HL,
+    ImportancePredictorWith3HL,
     ImportancePredictorAllClassWithHL,
 )
 
@@ -35,6 +36,7 @@ class ModelRunner:
         - "normalization" → ImportancePredictorWithNormalization
         - "HL_16" → ImportancePredictorWithHL (HL=16)
         - "2HL_64_16" → ImportancePredictorWith2HL (64, 16)
+        - "3HL_64_32_16" → ImportancePredictorWith3HL (64, 32, 16)
         - "all_class_HL_16" → ImportancePredictorAllClassWithHL (HL=16)
 
     The `Classificator` instance is accasable from outside.
@@ -54,6 +56,8 @@ class ModelRunner:
                 self.model = ImportancePredictorWithHL(16)
             case "2HL_64_16":
                 self.model = ImportancePredictorWith2HL(64, 16)
+            case "3HL_64_32_16":
+                self.model = ImportancePredictorWith3HL(64, 32, 16)
             case "all_class_HL_16":
                 self.model = ImportancePredictorAllClassWithHL(16)
             case _:
@@ -80,8 +84,8 @@ class ModelRunner:
             self.std_atr = norm["std_emb"].to(self.DEVICE)
 
         if self.model.USE_LENGTH:
-            self.mean_len = norm["mean_len"].to(self.DEVICE)
-            self.std_len = norm["std_len"].to(self.DEVICE)
+            self.mean_len = norm["mean_emb"].to(self.DEVICE)
+            self.std_len = norm["std_emb"].to(self.DEVICE)
 
     def normalize_input_with_len(
         self, x: torch.Tensor, length_feature: torch.Tensor
@@ -119,7 +123,7 @@ class ModelRunner:
 
 
 if __name__ == "__main__":
-    runner = ModelRunner("HL_16")
+    runner = ModelRunner("3HL_64_32_16")
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory
