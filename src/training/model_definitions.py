@@ -155,16 +155,16 @@ class ResidueDataset(Dataset):
         self,
         X,
         y,
-        mean_atb,
-        std_atb,
+        mean_atr,
+        std_atr,
         mean_len=None,
         std_len=None,
     ):
         self.X = X
         self.y = y
 
-        self.mean_atb = mean_atb
-        self.std_atb = std_atb
+        self.mean_atr = mean_atr
+        self.std_atr = std_atr
 
         self.mean_len = mean_len
         self.std_len = std_len
@@ -177,15 +177,15 @@ class ResidueDataset(Dataset):
         y = torch.tensor(self.y[idx], dtype=torch.float32)
 
         if self.mean_len is not None:
-            atb = x[:1280]
+            atr = x[:1280]
             length = x[1280:]
 
-            atb = (atb - self.mean_atb) / self.std_atb
+            atr = (atr - self.mean_atr) / self.std_atr
             length = (length - self.mean_len) / self.std_len
 
-            x = torch.cat([atb, length], dim=0)
+            x = torch.cat([atr, length], dim=0)
         else:
-            x = (x - self.mean_atb) / self.std_atb
+            x = (x - self.mean_atr) / self.std_atr
 
         return x, y
 
@@ -209,28 +209,28 @@ class DatasetHandler:
         X_train = X[train_idx].astype(np.float32)
 
         if self.use_length:
-            X_atb = X_train[:, :1280]
+            X_atr = X_train[:, :1280]
             X_len = X_train[:, 1280:]
 
-            mean_atb = torch.from_numpy(X_atb.mean(axis=0)).float()
-            std_atb = torch.from_numpy(X_atb.std(axis=0) + 1e-8).float()
+            mean_atr = torch.from_numpy(X_atr.mean(axis=0)).float()
+            std_atr = torch.from_numpy(X_atr.std(axis=0) + 1e-8).float()
 
             mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
             std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
 
             self.norm_stats = {
-                "mean_atb": mean_atb,
-                "std_atb": std_atb,
+                "mean_atr": mean_atr,
+                "std_atr": std_atr,
                 "mean_len": mean_len,
                 "std_len": std_len,
             }
         else:
-            mean_atb = torch.from_numpy(X_train.mean(axis=0)).float()
-            std_atb = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
+            mean_atr = torch.from_numpy(X_train.mean(axis=0)).float()
+            std_atr = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
 
             self.norm_stats = {
-                "mean_atb": mean_atb,
-                "std_atb": std_atb,
+                "mean_atr": mean_atr,
+                "std_atr": std_atr,
             }
 
             mean_len = std_len = None  # not used
@@ -240,7 +240,7 @@ class DatasetHandler:
         # =========================
         # Create datasets
         # =========================
-        rd = ResidueDataset(X, y, mean_atb, std_atb, mean_len, std_len)
+        rd = ResidueDataset(X, y, mean_atr, std_atr, mean_len, std_len)
         train_set = Subset(
             rd,
             train_idx,

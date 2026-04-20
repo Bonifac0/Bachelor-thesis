@@ -10,8 +10,8 @@ python -m src.training.compile_atr_to_train_data
 FEATURES = 1281
 
 MODE = "basic_1280_with_len"
-DOMAIN_ATB_PATH = f"training_data/{MODE}/domain_attribution.dat"
-MUTANT_ATB_PATH = f"training_data/{MODE}/mutant_attribution.dat"
+DOMAIN_ATR_PATH = f"training_data/{MODE}/domain_attribution.dat"
+MUTANT_ATR_PATH = f"training_data/{MODE}/mutant_attribution.dat"
 INPUT_PATH = "datasets/mutants_min:13.71_hev:15.82.json"
 
 OUT_X_PATH = f"training_data/{MODE}/X.dat"
@@ -35,15 +35,15 @@ def main():
 
     total_residues = sum(len(p["domain"]) for p in proteins)
 
-    domain_atb = np.memmap(
-        DOMAIN_ATB_PATH,
+    domain_atr = np.memmap(
+        DOMAIN_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
     )
 
-    mutant_atb = np.memmap(
-        MUTANT_ATB_PATH,
+    mutant_atr = np.memmap(
+        MUTANT_ATR_PATH,
         dtype=np.float16,
         mode="r",
         shape=(total_residues, FEATURES),
@@ -78,7 +78,7 @@ def main():
         shape=(total_samples,),
     )
 
-    atb_idx = 0
+    atr_idx = 0
     out_idx = 0
 
     aa_out = []
@@ -91,24 +91,24 @@ def main():
 
         for i in range(len(domain_seq)):
             if not mask[i]:
-                atb_idx += 1
+                atr_idx += 1
                 continue
 
             # domain attribution
-            X[out_idx] = domain_atb[atb_idx]
+            X[out_idx] = domain_atr[atr_idx]
             y[out_idx] = 0
             lengths[out_idx] = len(domain_seq)
             aa_out.append(domain_seq[i])
             out_idx += 1
 
             # mutant attribution
-            X[out_idx] = mutant_atb[atb_idx]
+            X[out_idx] = mutant_atr[atr_idx]
             y[out_idx] = 1
             lengths[out_idx] = len(domain_seq)
             aa_out.append(mutant_seq[i])
             out_idx += 1
 
-            atb_idx += 1
+            atr_idx += 1
 
     X.flush()
     y.flush()

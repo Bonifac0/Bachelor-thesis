@@ -72,8 +72,13 @@ class ModelRunner:
 
         # Load normalization stats
         norm = checkpoint["normalization"]
-        self.mean_atr = norm["mean_atr"].to(self.DEVICE)
-        self.std_atr = norm["std_atr"].to(self.DEVICE)
+        if "mean_atr" in norm:
+            self.mean_atr = norm["mean_atr"].to(self.DEVICE)
+            self.std_atr = norm["std_atr"].to(self.DEVICE)
+        else:  # legacy reasons
+            self.mean_atr = norm["mean_emb"].to(self.DEVICE)
+            self.std_atr = norm["std_emb"].to(self.DEVICE)
+
         if self.model.USE_LENGTH:
             self.mean_len = norm["mean_len"].to(self.DEVICE)
             self.std_len = norm["std_len"].to(self.DEVICE)
