@@ -17,8 +17,10 @@ Y_PATH = "training_data/basic_1280/y.dat"
 TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
 
-def aggregate_log_sigmoid(s, norm):
-    steepnes = 4
+def aggregate_log_sigmoid(attribution, norm):
+    s = np.abs(attribution).sum(axis=-1)
+    NORM_MEDIAN = -0.275390625
+    steepnes = 18
     log_arr = np.log10(s)
     return 1 / (1 + np.exp(-steepnes * (log_arr - norm)))
 
@@ -31,34 +33,57 @@ X = np.memmap(
 )
 
 s = np.abs(X).sum(axis=-1)
-print(f"s mean: {s.mean()}")
 
-# sum before transformation
+#########################
+# before normalization
+#########################
+
+med = np.median(s)
+print(f"Default median: {med}")
+
 bins = np.logspace(np.log10(s.min()), np.log10(s.max()), 100)
+
 plt.hist(s, bins=bins)
-plt.xscale("log")  # optional
-# plt.yscale("log")  # optional
+
+# vertical line at median
+plt.axvline(
+    med,
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label=f"Median = {med:.2e}",
+)
+
+plt.xscale("log")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.title("Histogram of Array Values")
-plt.savefig("histogram.png", dpi=300, bbox_inches="tight")
+plt.legend()
+
+plt.savefig("histogram.pdf", bbox_inches="tight")
 plt.close()
 
-# sum after transformation
+#########################
+# normalized
+#########################
+
 norm = np.log10(np.median(s))
 print(f"Norm: {norm}")
-sigmoided = aggregate_log_sigmoid(s, norm)
+sigmoided = aggregate_log_sigmoid(X, norm)
 
-
-print(sigmoided.mean())
+print(np.median(sigmoided))
 plt.hist(sigmoided, bins=100)
 plt.xlabel("Normalized Value (0-1)")
 plt.ylabel("Frequency")
+plt.yscale("log")
 plt.title("Histogram (log-normalized)")
-plt.savefig("histogram_normalized.png", dpi=300, bbox_inches="tight")
+plt.savefig("histogram_normalized.pdf", bbox_inches="tight")
 plt.close()
 
+#########################
 # predictor
+#########################
+
 runner = ModelRunner("2HL_64_16")
 model = runner.model
 
@@ -67,11 +92,10 @@ inp = torch.from_numpy(X.copy()).float().to(runner.DEVICE)
 
 inp = (inp - runner.mean_atr) / runner.std_atr
 
-
 # Forward pass
 with torch.no_grad():
     logits = runner.model(inp)
-    probs = torch.sigmoid(logits * 0.2)
+    probs = torch.sigmoid(logits)
 
 pred_s = probs.cpu().numpy()
 print(f"Median: {np.median(pred_s)}")
@@ -79,6 +103,7 @@ print(f"Median: {np.median(pred_s)}")
 plt.hist(pred_s, bins=100)
 plt.xlabel("Prediction")
 plt.ylabel("Frequency")
+plt.yscale("log")
 plt.title("Histogram of Predictor")
-plt.savefig("histogram_predictor.png", dpi=300, bbox_inches="tight")
+plt.savefig("histogram_predictor.pdf", bbox_inches="tight")
 plt.close()
