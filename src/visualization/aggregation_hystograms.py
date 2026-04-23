@@ -18,7 +18,8 @@ TOTAL_RESIDUES = os.path.getsize(Y_PATH)  # uint8 -> 1 byte per residue
 
 
 def aggregate_log_sigmoid(attribution, norm):
-    s = np.abs(attribution).sum(axis=-1)
+    # s = np.abs(attribution).sum(axis=-1)
+    s = attribution.sum(axis=-1)
     NORM_MEDIAN = -0.275390625
     steepnes = 18
     log_arr = np.log10(s)
@@ -32,14 +33,31 @@ X = np.memmap(
     shape=(TOTAL_RESIDUES, 1280),
 )
 
-s = np.abs(X).sum(axis=-1)
+
+#########################
+# without abs
+#########################
+
+s = X.sum(axis=-1)
+med = np.median(s)
+print(f"Default median: {med}")
+print(f"Min: {np.min(s)}")
+print(f"Max: {np.max(s)}")
+
+
+#####
+plt.hist(s, bins=100)
+plt.xlabel("Normalized Value (0-1)")
+plt.ylabel("Frequency")
+plt.yscale("log")
+plt.title("Histogram (log-normalized)")
+plt.savefig("s.pdf", bbox_inches="tight")
+plt.close()
+#####
 
 #########################
 # before normalization
 #########################
-
-med = np.median(s)
-print(f"Default median: {med}")
 
 bins = np.logspace(np.log10(s.min()), np.log10(s.max()), 100)
 
