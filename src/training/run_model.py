@@ -39,10 +39,10 @@ class ModelRunner:
         - "3HL_64_32_16" → ImportancePredictorWith3HL (64, 32, 16)
         - "all_class_HL_16" → ImportancePredictorAllClassWithHL (HL=16)
 
-    The `Classificator` instance is accasable from outside.
+    The `Classificator` instance can be skipped if attributions will be provided.
     """
 
-    def __init__(self, ARCHITECTURE: str):
+    def __init__(self, ARCHITECTURE: str, require_classificator=True):
         match ARCHITECTURE:
             case "basic":
                 self.model = ImportancePredictorBasic()
@@ -63,7 +63,11 @@ class ModelRunner:
             case _:
                 raise ValueError(f"Invalid ARCHITECTURE: {ARCHITECTURE}")
 
-        self.classificator = Classificator()
+        if require_classificator:
+            self.classificator = Classificator()
+        else:
+            self.classificator = None
+
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load checkpoint (model + normalization)
@@ -84,46 +88,48 @@ class ModelRunner:
             self.std_atr = norm["std_emb"].to(self.DEVICE)
 
         if self.model.USE_LENGTH:
-            self.mean_len = norm["mean_emb"].to(self.DEVICE)
-            self.std_len = norm["std_emb"].to(self.DEVICE)
+            self.mean_len = norm["mean_len"].to(self.DEVICE)
+            self.std_len = norm["std_len"].to(self.DEVICE)
 
-    def normalize_input_with_len(
-        self, x: torch.Tensor, length_feature: torch.Tensor
-    ) -> torch.Tensor:
+    def normalize_input(self, x: torch.Tensor, seq_len: int = 0) -> torch.Tensor:
         """
         Normalize attributions and length feature separately.
-        x: (N, 1280)
-        length_feature: (N, 1)
+        If model support length feature, provide it in `seq_len`.
         """
-        atr = (x - self.mean_atr) / self.std_atr
-        length = (length_feature - self.mean_len) / self.std_len
-        return torch.cat([atr, length], dim=-1)
-
-    def predict_importance(self, seq) -> np.ndarray:
-        # Compute attributions
-        atr = get_captum_attribution(self.classificator, seq)  # (N, 1280)
-        x = torch.from_numpy(atr).float().to(self.DEVICE)
-
         if self.model.USE_LENGTH:
+            assert seq_len != 0, "length of sequence can not be 0"
             # Create length feature for each residue
-            seq_len = torch.full(
-                (x.shape[0], 1), fill_value=len(seq), device=x.device, dtype=x.dtype
+            length_feature = torch.full(
+                (x.shape[0], 1), fill_value=seq_len, device=x.device, dtype=x.dtype
             )
             # Normalize attributions and length feature
-            x = self.normalize_input_with_len(x, seq_len)
+            atr = (x - self.mean_atr) / self.std_atr
+            length = (length_feature - self.mean_len) / self.std_len
+            return torch.cat([atr, length], dim=-1)
         else:
-            x = (x - self.mean_atr) / self.std_atr
+            return (x - self.mean_atr) / self.std_atr
 
+    def predict_importance(self, seq: str, atr: np.ndarray | None = None) -> np.ndarray:
+        """
+        If you have atribution vector already, you can pass it and save a lot time.
+        The atr should originate from get_captum_attribution function.
+        """
+        if atr is None:
+            assert self.classificator is not None, "Classificator innit skipped"
+            atr = get_captum_attribution(self.classificator, seq)
+        x = torch.from_numpy(atr).float().to(self.DEVICE)
+
+        x = self.normalize_input(x, len(seq))
         # Forward pass
         with torch.no_grad():
-            logits = self.model(x)  # shape: (N,)
-            probs = torch.sigmoid(logits)  # convert to [0,1]
+            logits = self.model(x)
+            probs = torch.sigmoid(logits)
 
         return probs.cpu().numpy()
 
 
 if __name__ == "__main__":
-    runner = ModelRunner("3HL_64_32_16")
+    runner = ModelRunner("2HL_64_16")
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory

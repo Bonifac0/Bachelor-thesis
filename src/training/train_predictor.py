@@ -61,7 +61,6 @@ def evaluate_model(model, dataloader, criterion, device):
 def main(ARCHITECTURE):
     EPOCHS = 50  # upper bound
     LR = 1e-3  # default
-    WEIGHT_DECAY = 1e-5  # L2 regularization # TODO maybe delete
 
     DATASET_SPLIT = (0.6, 0.2, 0.2)
 
@@ -75,8 +74,7 @@ def main(ARCHITECTURE):
             model = ImportancePredictorBasic()
         case "len_and_HL_16":
             MODE = "basic_1280_with_len"
-            HL_dim = 16
-            model = ImportancePredictorWithLengthAndHL(HL_dim)
+            model = ImportancePredictorWithLengthAndHL(16)
         case "length":
             MODE = "basic_1280_with_len"
             LR = 1e-2
@@ -116,7 +114,6 @@ def main(ARCHITECTURE):
             "mode": MODE,
             "epochs": EPOCHS,
             "learning_rate": LR,
-            "weight_decay": WEIGHT_DECAY,
             "dataset_split": DATASET_SPLIT,
             "patience": PATIENCE,
             "min_delta": MIN_DELTA,
@@ -134,7 +131,7 @@ def main(ARCHITECTURE):
     dataset = DatasetHandler(X, y, DATASET_SPLIT, use_length=model.USE_LENGTH)
 
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
     best_val_loss = float("inf")
     patience_counter = 0
@@ -348,7 +345,7 @@ def main(ARCHITECTURE):
 
 
 if __name__ == "__main__":
-    A = ["3HL_64_32_16"]
+    A = ["2HL_64_16"]
     for a in A:
         print(f"STARTING: {a}")
         main(a)

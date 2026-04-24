@@ -98,17 +98,20 @@ def plot_group_comparison(runs_data, output_pdf, metric="acc"):
                     xytext=(0, 3),
                     textcoords="offset points",
                     ha="center",
-                    fontsize=6,
+                    fontsize=12,
                 )
 
     # Formatting
-    ax.set_ylabel(METRICS[metric])
+    ax.set_ylabel(METRICS[metric], fontsize=18)
     ax.set_ylim(0.7, 1)
-    ax.set_title(f"Performance Comparison by Protein Length Group ({METRICS[metric]})")
-    ax.set_xlabel("Length Group")
+    ax.set_title(
+        f"Performance Comparison by Protein Length Group ({METRICS[metric]})",
+        fontsize=24,
+    )
+    ax.set_xlabel("Length Group", fontsize=18)
     ax.set_xticks(x)
-    ax.set_xticklabels(sorted_keys, rotation=45)
-    ax.legend()
+    ax.set_xticklabels(sorted_keys, rotation=45, fontsize=18)
+    ax.legend(fontsize=18)
     ax.grid(axis="y", linestyle="--", alpha=0.6)
 
     plt.tight_layout()
@@ -159,17 +162,19 @@ def plot_aa_comparison(runs_data, output_pdf, metric="acc", y_limit=(0, 1.1)):
                     xytext=(0, 3),
                     textcoords="offset points",
                     ha="center",
-                    fontsize=7,
+                    fontsize=12,
                 )
 
     # Formatting
-    ax.set_ylabel(METRICS[metric])
-    ax.set_title(f"Performance Comparison by Amino Acid ({METRICS[metric]})")
-    ax.set_xlabel("Amino Acid")
+    ax.set_ylabel(METRICS[metric], fontsize=18)
+    ax.set_title(
+        f"Performance Comparison by Amino Acid ({METRICS[metric]})", fontsize=24
+    )
+    ax.set_xlabel("Amino Acid", fontsize=18)
     ax.set_xticks(x)
-    ax.set_xticklabels(sorted_aa)
+    ax.set_xticklabels(sorted_aa, fontsize=18)
     ax.set_ylim(0.8, 1)
-    ax.legend()
+    ax.legend(loc="lower right", fontsize=18)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
     plt.tight_layout()
