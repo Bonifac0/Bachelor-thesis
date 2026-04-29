@@ -1,5 +1,6 @@
 import matplotlib
 import numpy as np
+import copy
 
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
@@ -206,6 +207,49 @@ def make_importance_general(
     plt.tight_layout()
     plt.savefig(f"{outdir}/{prot_id}_compare.png")
     plt.close(fig)
+
+
+def make_importance_diff(
+    protein: dict,
+    data: np.ndarray,  # shape (P, N)
+    probability: tuple[float, float],
+    labels: list[str],  # length P
+    outdir: str = "test_importance",
+):
+    """
+    Make graph only for different rezidues.
+    Wrapper for make_importance_general
+    """
+    domain = protein["domain"]
+    mutant = protein["mutant"]
+
+    assert len(domain) == len(mutant), "Domain and mutant must have same length"
+
+    _, N = data.shape
+    assert N == len(domain), "Data column count must match sequence length"
+
+    # Keep only positions where domain != mutant
+    keep_idx = [i for i, (d, m) in enumerate(zip(domain, mutant)) if d != m]
+
+    filtered_domain = "".join(domain[i] for i in keep_idx)
+    filtered_mutant = "".join(mutant[i] for i in keep_idx)
+
+    # Filter columns in data
+    filtered_data = data[:, keep_idx]
+
+    # Create filtered protein dict
+    filtered_protein = copy.deepcopy(protein)
+    filtered_protein["domain"] = filtered_domain
+    filtered_protein["mutant"] = filtered_mutant
+
+    # Call original function
+    make_importance_general(
+        protein=filtered_protein,
+        data=filtered_data,
+        probability=probability,
+        labels=labels,
+        outdir=outdir,
+    )
 
 
 if __name__ == "__main__":
