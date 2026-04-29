@@ -22,7 +22,7 @@ def aggregate_sum(attribution):
 
 def aggregate_abs_sum(attribution):
     norm = -0.275390625
-    steepnes = 12
+    steepnes = 20
     s = np.abs(attribution).sum(axis=-1)
     log_arr = np.log10(s)
     return 1 / (1 + np.exp(-steepnes * (log_arr - norm)))
@@ -109,7 +109,7 @@ def plot_predictor(data):
     runner = ModelRunner("2HL_64_16", require_classificator=False)
 
     # Compute attributions
-    inp = torch.from_numpy(X.copy()).float().to(runner.DEVICE)
+    inp = torch.from_numpy(data.copy()).float().to(runner.DEVICE)
 
     inp = (inp - runner.mean_atr) / runner.std_atr
 
@@ -119,7 +119,6 @@ def plot_predictor(data):
         probs = torch.sigmoid(logits)
 
     pred_s = probs.cpu().numpy()
-    print(f"Median: {np.median(pred_s)}")
 
     plt.hist(pred_s, bins=100)
     plt.xlabel("Prediction")
@@ -127,6 +126,57 @@ def plot_predictor(data):
     plt.yscale("log")
     plt.title("Histogram of Predictor")
     plt.savefig("sum_agr_hist/predictor.pdf", bbox_inches="tight")
+    plt.close()
+
+
+def plot_comparison(data):
+    runner = ModelRunner("2HL_64_16", require_classificator=False)
+
+    # --- Method 1: abs sum aggregation ---
+    abs_sum_values = aggregate_abs_sum(data)
+
+    # --- Method 2: predictor output ---
+    inp = torch.from_numpy(data.copy()).float().to(runner.DEVICE)
+    inp = (inp - runner.mean_atr) / runner.std_atr
+
+    with torch.no_grad():
+        logits = runner.model(inp)
+        probs = torch.sigmoid(logits)
+
+    pred_s = probs.cpu().numpy().flatten()
+
+    # --- Combined histogram ---
+    plt.figure(figsize=(8, 5))
+
+    plt.hist(
+        abs_sum_values,
+        bins=100,
+        alpha=0.5,
+        label="Abs Sum Aggregation",
+    )
+
+    plt.hist(
+        pred_s,
+        bins=100,
+        alpha=0.5,
+        label="Predictor",
+    )
+
+    plt.axvline(
+        0.5,
+        color="red",
+        linestyle="--",
+        linewidth=1,
+        label="Threshold = 0.5",
+    )
+
+    plt.xlabel("Prediction")
+    plt.ylabel("Frequency")
+    plt.yscale("log")
+    plt.title("Comparison of Aggregation vs Predictor")
+    plt.legend()
+
+    plt.savefig("graphs/agr_vs_pred_comparison.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -143,14 +193,16 @@ X = np.memmap(
 # print("\nploting default")
 # plot_default(X)
 
-print("\nploting sum")
-plot_sum(X)
+# print("\nploting sum")
+# plot_sum(X)
 
-print("\nploting abs sum")
-plot_abs_sum(X)
+# print("\nploting abs sum")
+# plot_abs_sum(X)
 
-print("\nploting L2")
-plot_L2(X)
+# print("\nploting L2")
+# plot_L2(X)
 
 # print("\nploting predictor")
 # plot_predictor(X)
+
+plot_comparison(X)

@@ -84,7 +84,7 @@ def aggregate_predictor(attribution):
 
 
 # --- agg sum ---
-print("Sum")
+print("\nSum")
 norm_sigm = np.median(X[train_idx].sum(axis=-1))
 print(f"Norm sum (train only): {norm_sigm}")
 
@@ -95,7 +95,7 @@ print(compute_acc(aggregate_sum(X[test_idx], norm_sigm), y[test_idx]))
 
 
 # --- agg abs sum ---
-print("Abs sum")
+print("\nAbs sum")
 norm_abs = np.log10(np.median(np.abs(X[train_idx]).sum(axis=-1)))
 print(f"Norm abs sum (train only): {norm_abs}")
 
@@ -106,7 +106,7 @@ print(compute_acc(aggregate_abs_sum(X[test_idx], norm_abs), y[test_idx]))
 
 
 # --- agg L2 ---
-print("L2")
+print("\nL2")
 norm_l2 = np.log10(np.median(np.sqrt(np.sum(X[train_idx] ** 2, axis=-1))))
 print(f"Norm L2: {norm_l2}")
 
@@ -117,7 +117,7 @@ print(compute_acc(aggregate_L2(X[test_idx], norm_l2), y[test_idx]))
 
 
 # --- agg L2 ---
-print("Predictor")
+print("\nPredictor")
 print(compute_acc(aggregate_predictor(X[train_idx]), y[train_idx]))
 print(compute_acc(aggregate_predictor(X[test_idx]), y[test_idx]))
 # print((aggregate_predictor(X) < 0.5).sum())
