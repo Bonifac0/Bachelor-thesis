@@ -1,9 +1,12 @@
 import matplotlib
 import numpy as np
-import copy
 
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
+
+"""
+python -m src.helpers.importance_vis
+"""
 
 
 def make_importance_all(
@@ -213,43 +216,94 @@ def make_importance_diff(
     protein: dict,
     data: np.ndarray,  # shape (P, N)
     probability: tuple[float, float],
-    labels: list[str],  # length P
+    labels: list[str],
     outdir: str = "test_importance",
+    same_gap: float = 0.15,
+    diff_gap: float = 1.0,
 ):
     """
-    Make graph only for different rezidues.
-    Wrapper for make_importance_general
+    Plot feature importance with compressed unchanged regions.
     """
+
     domain = protein["domain"]
     mutant = protein["mutant"]
+    prot_id = protein["prot_id"]
 
     assert len(domain) == len(mutant), "Domain and mutant must have same length"
 
-    _, N = data.shape
+    P, N = data.shape
     assert N == len(domain), "Data column count must match sequence length"
+    assert P == len(labels), "labels length must match number of features (P)"
 
-    # Keep only positions where domain != mutant
-    keep_idx = [i for i, (d, m) in enumerate(zip(domain, mutant)) if d != m]
+    is_diff = np.array([d != m for d, m in zip(domain, mutant)])
 
-    filtered_domain = "".join(domain[i] for i in keep_idx)
-    filtered_mutant = "".join(mutant[i] for i in keep_idx)
+    # Build x positions
+    x_positions = [0.0]
 
-    # Filter columns in data
-    filtered_data = data[:, keep_idx]
+    for i in range(1, N):
+        prev_diff = is_diff[i - 1]
+        curr_diff = is_diff[i]
 
-    # Create filtered protein dict
-    filtered_protein = copy.deepcopy(protein)
-    filtered_protein["domain"] = filtered_domain
-    filtered_protein["mutant"] = filtered_mutant
+        # if either side is mutation -> large spacing
+        if prev_diff or curr_diff:
+            step = diff_gap
+        else:
+            step = same_gap
 
-    # Call original function
-    make_importance_general(
-        protein=filtered_protein,
-        data=filtered_data,
-        probability=probability,
-        labels=labels,
-        outdir=outdir,
+        x_positions.append(x_positions[-1] + step)
+
+    x_positions = np.array(x_positions)
+
+    total_width = 0.8
+    bar_width = total_width / P
+
+    fig_width = max(10, x_positions[-1] * 0.35)
+
+    fig, ax = plt.subplots(figsize=(fig_width, 6))
+
+    fig.suptitle(
+        f"Feature importance comparison for protein {prot_id}",
+        fontsize=16,
     )
+
+    # Plot bars only for different residues
+    for i in range(P):
+        offsets = x_positions[is_diff] - total_width / 2 + i * bar_width + bar_width / 2
+
+        ax.bar(
+            offsets,
+            data[i, is_diff],
+            width=bar_width,
+            label=labels[i],
+        )
+
+    # Tick labels
+    xtick_labels = []
+
+    for d, m in zip(domain, mutant):
+        if d == m:
+            xtick_labels.append(d)
+        else:
+            xtick_labels.append(f"{d}\n{m}")
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(xtick_labels, fontsize=8)
+
+    ax.set_xlabel("Amino Acid Position")
+    ax.set_ylabel("Feature value")
+
+    ax.set_title(
+        f"Domain score: {probability[0]:.2f} | Mutant score: {probability[1]:.2f}"
+    )
+
+    ax.axhline(0.5, color="red", linestyle="--", alpha=0.5)
+
+    ax.legend(ncols=min(P, 5))
+    ax.set_ylim(0, max(1.0, np.max(data) * 1.2))
+
+    plt.tight_layout()
+    plt.savefig(f"{outdir}/{prot_id}_compare_diff.pdf")
+    plt.close(fig)
 
 
 if __name__ == "__main__":
@@ -292,4 +346,4 @@ if __name__ == "__main__":
     )
     print(data)
 
-    make_importance_general(protein, data, probability, labels)
+    make_importance_diff(protein, data, probability, labels)
