@@ -87,39 +87,33 @@ class ModelRunner:
             self.mean_atr = norm["mean_emb"].to(self.DEVICE)
             self.std_atr = norm["std_emb"].to(self.DEVICE)
 
-        if self.model.USE_LENGTH:
-            self.mean_len = norm["mean_len"].to(self.DEVICE)
-            self.std_len = norm["std_len"].to(self.DEVICE)
-
-    def normalize_input(self, x: torch.Tensor, seq_len: int = 0) -> torch.Tensor:
-        """
-        Normalize attributions and length feature separately.
-        If model support length feature, provide it in `seq_len`.
-        """
-        if self.model.USE_LENGTH:
-            assert seq_len != 0, "length of sequence can not be 0"
-            # Create length feature for each residue
-            length_feature = torch.full(
-                (x.shape[0], 1), fill_value=seq_len, device=x.device, dtype=x.dtype
-            )
-            # Normalize attributions and length feature
-            atr = (x - self.mean_atr) / self.std_atr
-            length = (length_feature - self.mean_len) / self.std_len
-            return torch.cat([atr, length], dim=-1)
-        else:
-            return (x - self.mean_atr) / self.std_atr
+        if self.model.USE_LENGTH and self.mean_atr.shape[0] == 1280:  # legacy reasons
+            self.mean_atr = torch.cat([self.mean_atr, norm["mean_len"]], dim=-1)
+            self.std_atr = torch.cat([self.std_atr, norm["std_len"]], dim=-1)
 
     def predict_importance(self, seq: str, atr: np.ndarray | None = None) -> np.ndarray:
         """
         If you have atribution vector already, you can pass it and save a lot time.
+        Also the require_classificator could be False (saves even more time).
         The atr should originate from get_captum_attribution function.
         """
         if atr is None:
             assert self.classificator is not None, "Classificator innit skipped"
             atr = get_captum_attribution(self.classificator, seq)
+
+            if self.model.USE_LENGTH:
+                length_feature = np.full(
+                    (atr.shape[0], 1),
+                    fill_value=len(seq),
+                    dtype=atr.dtype,
+                )
+                atr = np.concatenate([atr, length_feature], axis=-1)
+
         x = torch.from_numpy(atr).float().to(self.DEVICE)
 
-        x = self.normalize_input(x, len(seq))
+        # normalization
+        x = (x - self.mean_atr) / self.std_atr
+
         # Forward pass
         with torch.no_grad():
             logits = self.model(x)
@@ -129,7 +123,7 @@ class ModelRunner:
 
 
 if __name__ == "__main__":
-    runner = ModelRunner("2HL_64_16")
+    runner = ModelRunner("length")
 
     proteins = [("pokus", "MRSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG")]
     cold_shock = [  # 18 GB gpu memory

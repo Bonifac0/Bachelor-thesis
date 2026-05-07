@@ -128,7 +128,7 @@ def main(ARCHITECTURE):
         shape=(TOTAL_RESIDUES, model.FEATURES),
     )
     y = np.memmap(Y_PATH, dtype=np.uint8, mode="r", shape=(TOTAL_RESIDUES,))
-    dataset = DatasetHandler(X, y, DATASET_SPLIT, use_length=model.USE_LENGTH)
+    dataset = DatasetHandler(X, y, DATASET_SPLIT)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)

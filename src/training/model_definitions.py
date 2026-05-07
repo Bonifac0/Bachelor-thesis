@@ -181,23 +181,12 @@ class ImportancePredictorBasic(nn.Module):
 
 
 class ResidueDataset(Dataset):
-    def __init__(
-        self,
-        X,
-        y,
-        mean_atr,
-        std_atr,
-        mean_len=None,
-        std_len=None,
-    ):
+    def __init__(self, X, y, mean, std):
         self.X = X
         self.y = y
 
-        self.mean_atr = mean_atr
-        self.std_atr = std_atr
-
-        self.mean_len = mean_len
-        self.std_len = std_len
+        self.mean = mean
+        self.std = std
 
     def __len__(self):
         return self.X.shape[0]
@@ -206,16 +195,7 @@ class ResidueDataset(Dataset):
         x = torch.tensor(self.X[idx], dtype=torch.float32)
         y = torch.tensor(self.y[idx], dtype=torch.float32)
 
-        if self.mean_len is not None:
-            atr = x[:1280]
-            length = x[1280:]
-
-            atr = (atr - self.mean_atr) / self.std_atr
-            length = (length - self.mean_len) / self.std_len
-
-            x = torch.cat([atr, length], dim=0)
-        else:
-            x = (x - self.mean_atr) / self.std_atr
+        x = (x - self.mean) / self.std
 
         return x, y
 
@@ -224,11 +204,10 @@ class DatasetHandler:
     BATCH_SIZE = 2048
     NUM_WORKERS = 4
 
-    def __init__(self, X, y, dataset_split, use_length=True):
+    def __init__(self, X, y, dataset_split):
         self.X = X
         self.y = y
         self.num_samples = len(X)
-        self.use_length = use_length
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pin = device.type == "cuda"
@@ -238,39 +217,20 @@ class DatasetHandler:
         # because of normalization
         X_train = X[train_idx].astype(np.float32)
 
-        if self.use_length:
-            X_atr = X_train[:, :1280]
-            X_len = X_train[:, 1280:]
+        mean_atr = torch.from_numpy(X_train.mean(axis=0)).float()
+        std_atr = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
 
-            mean_atr = torch.from_numpy(X_atr.mean(axis=0)).float()
-            std_atr = torch.from_numpy(X_atr.std(axis=0) + 1e-8).float()
-
-            mean_len = torch.from_numpy(X_len.mean(axis=0)).float()
-            std_len = torch.from_numpy(X_len.std(axis=0) + 1e-8).float()
-
-            self.norm_stats = {
-                "mean_atr": mean_atr,
-                "std_atr": std_atr,
-                "mean_len": mean_len,
-                "std_len": std_len,
-            }
-        else:
-            mean_atr = torch.from_numpy(X_train.mean(axis=0)).float()
-            std_atr = torch.from_numpy(X_train.std(axis=0) + 1e-8).float()
-
-            self.norm_stats = {
-                "mean_atr": mean_atr,
-                "std_atr": std_atr,
-            }
-
-            mean_len = std_len = None  # not used
+        self.norm_stats = {
+            "mean_atr": mean_atr,
+            "std_atr": std_atr,
+        }
 
         print("Normalization finished")
 
         # =========================
         # Create datasets
         # =========================
-        rd = ResidueDataset(X, y, mean_atr, std_atr, mean_len, std_len)
+        rd = ResidueDataset(X, y, mean_atr, std_atr)
         train_set = Subset(
             rd,
             train_idx,

@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import torch
 from src.training.run_model import ModelRunner
 
 
@@ -71,16 +70,7 @@ def aggregate_L2(attribution, norm):
 
 def aggregate_predictor(attribution):
     runner = ModelRunner("2HL_64_16", require_classificator=False)
-    inp = torch.from_numpy(attribution.copy()).float().to(runner.DEVICE)
-
-    inp = runner.normalize_input(inp)
-
-    # Forward pass
-    with torch.no_grad():
-        logits = runner.model(inp)
-        probs = torch.sigmoid(logits)
-
-    return probs.cpu().numpy()
+    return runner.predict_importance("", attribution)
 
 
 # --- agg sum ---
