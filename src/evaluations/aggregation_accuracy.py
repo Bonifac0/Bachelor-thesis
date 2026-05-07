@@ -70,7 +70,7 @@ def aggregate_L2(attribution, norm):
 
 def aggregate_predictor(attribution):
     runner = ModelRunner("2HL_64_16", require_classificator=False)
-    return runner.predict_importance("", attribution)
+    return runner.predictor_inference(attribution)
 
 
 # --- agg sum ---

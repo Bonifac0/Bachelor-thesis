@@ -216,12 +216,8 @@ def main():
         dom_attribution = get_captum_attribution(
             runner.classificator, protein["domain"]
         )
-        pred_mut: np.ndarray = runner.predict_importance(
-            protein["mutant"], mut_attribution
-        )
-        pred_dom: np.ndarray = runner.predict_importance(
-            protein["domain"], dom_attribution
-        )
+        pred_mut: np.ndarray = runner.predictor_inference(mut_attribution)
+        pred_dom: np.ndarray = runner.predictor_inference(dom_attribution)
 
         # real_decrease: np.ndarray = use_chaotic_mutations(
         #     classificator, protein["mutant"], probability[1]

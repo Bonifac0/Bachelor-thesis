@@ -91,24 +91,12 @@ class ModelRunner:
             self.mean_atr = torch.cat([self.mean_atr, norm["mean_len"]], dim=-1)
             self.std_atr = torch.cat([self.std_atr, norm["std_len"]], dim=-1)
 
-    def predict_importance(self, seq: str, atr: np.ndarray | None = None) -> np.ndarray:
+    def predictor_inference(self, atr: np.ndarray) -> np.ndarray:
         """
-        If you have atribution vector already, you can pass it and save a lot time.
+        If you have atribution vector already, you can call this fcn directly and save a lot time.
         Also the require_classificator could be False (saves even more time).
         The atr should originate from get_captum_attribution function.
         """
-        if atr is None:
-            assert self.classificator is not None, "Classificator innit skipped"
-            atr = get_captum_attribution(self.classificator, seq)
-
-            if self.model.USE_LENGTH:
-                length_feature = np.full(
-                    (atr.shape[0], 1),
-                    fill_value=len(seq),
-                    dtype=atr.dtype,
-                )
-                atr = np.concatenate([atr, length_feature], axis=-1)
-
         x = torch.from_numpy(atr).float().to(self.DEVICE)
 
         # normalization
@@ -120,6 +108,23 @@ class ModelRunner:
             probs = torch.sigmoid(logits)
 
         return probs.cpu().numpy()
+
+    def predict_importance(self, seq: str) -> np.ndarray:
+        """
+        Main fcn for predicting importance.
+        """
+        assert self.classificator is not None, "Classificator innit skipped"
+        atr = get_captum_attribution(self.classificator, seq)
+
+        if self.model.USE_LENGTH:
+            length_feature = np.full(
+                (atr.shape[0], 1),
+                fill_value=len(seq),
+                dtype=atr.dtype,
+            )
+            atr = np.concatenate([atr, length_feature], axis=-1)
+
+        return self.predictor_inference(atr)
 
 
 if __name__ == "__main__":
