@@ -37,42 +37,42 @@ def aggregate_L2(attribution):
 
 
 def plot_default(data):
-    s = data.sum(axis=-1)
+    # s = data.sum(axis=-1)
+    s = np.abs(data).sum(axis=-1)
     med = np.median(s)
     print(f"Default median: {med}")
     print(f"Min: {np.min(s)}")
     print(f"Max: {np.max(s)}")
 
-    plt.hist(s, bins=100)
-    plt.xlabel("Normalized Value (0-1)")
-    plt.ylabel("Frequency")
-    plt.yscale("log")
-    plt.title("Histogram (log-normalized)")
-    plt.savefig("sum_agr_hist/default.pdf", bbox_inches="tight")
-    plt.close()
-
-
-def log_plot(data):  # obsolete
-    s = data.sum(axis=-1)
-    med = np.median(s)
-
     bins = np.logspace(np.log10(s.min()), np.log10(s.max()), 100)
     plt.hist(s, bins=bins)
-    # vertical line at median
+    plt.xlabel("Aggregation output")
+    plt.xscale("log")
     plt.axvline(
         med,
         color="red",
         linestyle="--",
-        linewidth=2,
+        linewidth=1,
         label=f"Median = {med:.2e}",
     )
-    plt.xscale("log")
-    plt.xlabel("Value")
     plt.ylabel("Frequency")
-    plt.title("Histogram of Array Values")
+    plt.title("Abs sum aggregation histogram")
     plt.legend()
-    plt.savefig("sum_agr_hist/default.pdf", bbox_inches="tight")
+    plt.savefig("sum_agr_hist/default_abs_sum.pdf", bbox_inches="tight")
     plt.close()
+
+
+# def log_plot(data):  # obsolete
+#     s = data.sum(axis=-1)
+#     med = np.median(s)
+
+#     plt.hist(s, bins=bins)
+#     # vertical line at median
+#     plt.xlabel("Value")
+#     plt.ylabel("Frequency")
+#     plt.title("Histogram of Array Values")
+#     plt.savefig("sum_agr_hist/default.pdf", bbox_inches="tight")
+#     plt.close()
 
 
 def plot_sum(data):

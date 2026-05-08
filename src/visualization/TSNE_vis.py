@@ -95,12 +95,14 @@ def main():
     # Colorbar
     cbar = plt.colorbar(sc, ticks=np.arange(len(AMINO_ACIDS)))
     cbar.ax.set_yticklabels(AMINO_ACIDS)
-    cbar.set_label("Amino Acid")
-    cbar.ax.tick_params(length=0)
+    cbar.set_label("Amino Acid", fontsize=18)
+    cbar.ax.tick_params(length=0, labelsize=14)
 
-    plt.title("TSNE colored by Amino Acid")
-    plt.xlabel("TSNE Dimension 1")
-    plt.ylabel("TSNE Dimension 2")
+    plt.title("TSNE colored by Amino Acid", fontsize=24)
+    plt.xlabel("TSNE Dimension 1", fontsize=18)
+    plt.ylabel("TSNE Dimension 2", fontsize=18)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
     plt.savefig("TSNE_amino_acid_colored.pdf", bbox_inches="tight")
 

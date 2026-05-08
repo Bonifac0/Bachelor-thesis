@@ -89,7 +89,7 @@ ax.set_xticklabels(labels, rotation=30)
 ax.set_yticklabels([f"{labels[i]}\n{counts[i]}" for i in range(len(labels))])
 ax.set_xlabel("Predicted class")
 ax.set_ylabel("True class")
-plt.title(f"Thermal Class Confusion Matrix (Total: {total_sum})")
+plt.title(f"Thermal Class Confusion Matrix for Protein (Total: {total_sum})")
 
 # Annotate each cell
 for i in range(4):
@@ -105,4 +105,4 @@ for i in range(4):
 
 plt.colorbar(im)
 plt.tight_layout()
-plt.savefig("class_confusion_matrix.png")
+plt.savefig("class_confusion_matrix_prot.pdf")
