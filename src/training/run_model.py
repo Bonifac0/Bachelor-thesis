@@ -1,7 +1,6 @@
 import torch
 from src.helpers.captum_attribution import get_captum_attribution
 from src.predictor import Classificator
-from src.helpers.importance_vis import make_importance_hyperthermo
 import numpy as np
 from src.training.model_definitions import (
     ImportancePredictorWithLengthAndHL,
@@ -161,4 +160,3 @@ if __name__ == "__main__":
 
         probability = runner.classificator.classify([protein])
         print(probability[0])
-        make_importance_hyperthermo(protein, importance_scores, probability[0][3])
