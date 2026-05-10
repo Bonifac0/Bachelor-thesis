@@ -58,7 +58,7 @@ def parse_training_log(file_name):
     return results
 
 
-def plot_group_comparison(runs_data, output_pdf, metric="acc"):
+def plot_group_comparison(runs_data, output_pdf):
     """
     Plots sequence length histogram for any number of runs.
     :param runs_data: List of tuples [(data_dict, "Label Name"), ...]
@@ -83,7 +83,7 @@ def plot_group_comparison(runs_data, output_pdf, metric="acc"):
 
     # Plot each run
     for i, (data_dict, label) in enumerate(runs_data):
-        values = [data_dict["protein_groups"][k][metric] for k in sorted_keys]
+        values = [1.0 - data_dict["protein_groups"][k]["acc"] for k in sorted_keys]
 
         # Calculate offset so bars are centered around the tick
         offset = (i - (num_runs - 1) / 2) * width
@@ -102,10 +102,10 @@ def plot_group_comparison(runs_data, output_pdf, metric="acc"):
                 )
 
     # Formatting
-    ax.set_ylabel(METRICS[metric], fontsize=18)
-    ax.set_ylim(0.7, 1)
+    ax.set_ylabel("Error Rate", fontsize=18)
+    # ax.set_ylim(0, 1.1)
     ax.set_title(
-        f"Performance Comparison by Protein Length Group ({METRICS[metric]})",
+        "Performance Comparison by Protein Length Group",
         fontsize=24,
     )
     ax.set_xlabel("Length Group", fontsize=18)
@@ -120,11 +120,10 @@ def plot_group_comparison(runs_data, output_pdf, metric="acc"):
     print(f"Plot successfully saved to {output_pdf}")
 
 
-def plot_aa_comparison(runs_data, output_pdf, metric="acc", y_limit=(0, 1.1)):
+def plot_aa_comparison(runs_data, output_pdf):
     """
     Plots amino acid performance comparison for any number of runs.
     :param runs_data: List of tuples [(data_dict, "Label Name"), ...]
-    :param metric: 'acc' or 'f1'
     """
     if not runs_data:
         return
@@ -146,7 +145,7 @@ def plot_aa_comparison(runs_data, output_pdf, metric="acc", y_limit=(0, 1.1)):
     for i, (data_dict, label) in enumerate(runs_data):
         # We use .get(aa, 0) in case one log is missing an AA that another has
         values = [
-            data_dict["amino_acids"].get(aa, {}).get(metric, 0) for aa in sorted_aa
+            1.0 - data_dict["amino_acids"].get(aa, {}).get("acc", 0) for aa in sorted_aa
         ]
 
         offset = (i - (num_runs - 1) / 2) * width
@@ -166,14 +165,12 @@ def plot_aa_comparison(runs_data, output_pdf, metric="acc", y_limit=(0, 1.1)):
                 )
 
     # Formatting
-    ax.set_ylabel(METRICS[metric], fontsize=18)
-    ax.set_title(
-        f"Performance Comparison by Amino Acid ({METRICS[metric]})", fontsize=24
-    )
+    ax.set_ylabel("Error Rate", fontsize=18)
+    ax.set_title("Performance Comparison by Amino Acid", fontsize=24)
     ax.set_xlabel("Amino Acid", fontsize=18)
     ax.set_xticks(x)
     ax.set_xticklabels(sorted_aa, fontsize=18)
-    ax.set_ylim(0.8, 1)
+    # ax.set_ylim(0, 1)
     ax.legend(loc="lower right", fontsize=18)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
@@ -188,7 +185,7 @@ if __name__ == "__main__":
         (parse_training_log("basic"), "Basic"),
         (parse_training_log("length"), "With Length Feature"),
     ]
-    plot_group_comparison(runs, "graphs/acc_group_bacic_vs_len.pdf", metric="acc")
+    plot_group_comparison(runs, "graphs/acc_group_bacic_vs_len.pdf")
 
     runs = [  # acc_len_dif_layers
         (parse_training_log("basic"), "Basic"),
@@ -196,4 +193,4 @@ if __name__ == "__main__":
         (parse_training_log("2HL_64_16"), "Two Hidden Layers"),
         (parse_training_log("3HL_64_32_16"), "Three Hidden Layers"),
     ]
-    plot_aa_comparison(runs, "graphs/acc_AA_dif_layers.pdf", metric="acc")
+    plot_aa_comparison(runs, "graphs/acc_AA_dif_layers.pdf")
