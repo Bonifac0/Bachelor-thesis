@@ -75,6 +75,169 @@ def make_importance_general(
 
 def make_importance_diff(
     protein: dict,
+    data: np.ndarray,
+    probability: tuple[float, float],
+    labels: list[str],
+    outdir: str = ".",
+):
+    """
+    Plot importance only for mutated residues.
+
+    Residue numbering is based on the full protein sequence
+    using approximate Levenshtein alignment.
+    """
+
+    sequence = protein["sequence"]
+    domain = protein["domain"]
+    mutant = protein["mutant"]
+    prot_id = protein["prot_id"]
+
+    assert len(domain) == len(mutant)
+
+    P, N = data.shape
+
+    assert N == len(domain)
+    assert P == len(labels)
+
+    # ============================================================
+    # Find best domain match inside full sequence
+    # ============================================================
+
+    best_start = None
+    best_distance = float("inf")
+
+    for start in range(len(sequence) - len(domain) + 1):
+        window = sequence[start : start + len(domain)]
+
+        dist = levenshtein(window, domain)
+
+        if dist < best_distance:
+            best_distance = dist
+            best_start = start
+
+    if best_start is None:
+        raise ValueError("Could not map domain into sequence")
+
+    # Full-sequence residue numbering
+    residue_numbers = np.arange(
+        best_start + 1,
+        best_start + len(domain) + 1,
+    )
+
+    # ============================================================
+    # Keep only mutated residues
+    # ============================================================
+
+    diff_idx = [i for i, (d, m) in enumerate(zip(domain, mutant)) if d != m]
+
+    if not diff_idx:
+        raise ValueError("No mutations found")
+
+    # Global residue range in full-sequence numbering
+    global_start = residue_numbers[diff_idx[0]]
+    global_end = residue_numbers[diff_idx[-1]]
+
+    data = data[:, diff_idx]
+
+    # Constant spacing
+    x = np.arange(len(diff_idx))
+
+    # Labels with sequence numbering
+    xticklabels = [
+        f"{residue_numbers[idx]}\n{domain[idx]}→{mutant[idx]}" for idx in diff_idx
+    ]
+
+    # ============================================================
+    # Plot
+    # ============================================================
+
+    total_width = 0.8
+    bar_width = total_width / P
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # ax.margins(x=0)
+
+    fig.suptitle(
+        f"Feature importance for protein {prot_id}",
+        fontsize=20,
+    )
+
+    colors = ["C1", "C1", "C0", "C0"]
+    hatches = ["", "//", "", "//"]
+    alphas = [1.0, 0.7, 1.0, 0.7]
+
+    for i in range(P):
+        offsets = x - total_width / 2 + i * bar_width + bar_width / 2
+
+        ax.bar(
+            offsets,
+            data[i],
+            width=bar_width,
+            label=labels[i],
+            color=colors[i],
+            hatch=hatches[i],
+            alpha=alphas[i],
+        )
+
+    # Vertical separators between residues
+    for xpos in np.arange(len(diff_idx) - 1) + 0.5:
+        ax.axvline(
+            xpos,
+            color="black",
+            linestyle="-",
+            linewidth=0.5,
+            alpha=0.3,
+            zorder=0,
+        )
+
+    ax.set_xticks(x)
+
+    ax.set_xticklabels(
+        xticklabels,
+        fontsize=12,
+    )
+
+    ax.set_xlabel(
+        "Amino Acid",
+        fontsize=18,
+    )
+
+    ax.set_ylabel(
+        "Predicted value",
+        fontsize=18,
+    )
+
+    ax.set_title(
+        f"Domain score: {probability[0]:.2f} | "
+        f"Mutant score: {probability[1]:.2f} | "
+        f"Region: {global_start}-{global_end}",
+        fontsize=16,
+    )
+
+    ax.axhline(
+        0.5,
+        color="red",
+        linestyle="--",
+        alpha=0.5,
+    )
+
+    ax.legend()
+
+    ax.set_ylim(
+        0,
+        max(1.0, np.max(data) * 1.2),
+    )
+
+    plt.tight_layout()
+
+    plt.savefig(f"{outdir}/{prot_id}_compare.pdf")
+
+    plt.close(fig)
+
+
+def make_importance_diff_context(
+    protein: dict,
     data: np.ndarray,  # shape (P, N)
     probability: tuple[float, float],
     labels: list[str],
@@ -270,7 +433,7 @@ def make_importance_diff(
 
         # Two context residues / ellipsis
         else:
-            step = 0.1
+            step = 0.15
 
         x_positions.append(x_positions[-1] + step)
 
@@ -288,9 +451,11 @@ def make_importance_diff(
     # Figure setup
     # ============================================================
 
-    fig_width = max(10, len(x_positions) * 0.35)
+    fig_width = max(6, len(x_positions) * 0.25)
 
     fig, ax = plt.subplots(figsize=(fig_width, 6))
+
+    ax.margins(x=0)
 
     fig.suptitle(
         f"Feature importance comparison for protein {prot_id}",
@@ -341,12 +506,12 @@ def make_importance_diff(
     )
 
     ax.set_xlabel(
-        "Amino Acid Position",
+        "Amino Acid",
         fontsize=18,
     )
 
     ax.set_ylabel(
-        "Feature value",
+        "Predicted value",
         fontsize=18,
     )
 
@@ -384,7 +549,7 @@ if __name__ == "__main__":
 
     # Provided protein
     protein = {
-        "prot_id": "A0A1M6DL67",
+        "prot_id": "pokusny",
         "sequence": "AASADRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAGACVEVERGBE",
         "domain": "SADRDGLYAPANWEPGSTMVVPPTMSDEEAETGFAG",
         "mutant": "SAMWSGLYAPPNWEYGSTMVVPPTMSSEEAETGGAG",

@@ -1,5 +1,5 @@
 import random
-from src.helpers.importance_vis import make_importance_general, make_importance_diff
+from src.helpers.importance_vis import make_importance_general
 from src.training.run_model import ModelRunner
 from src.helpers.captum_attribution import get_captum_attribution
 from src.helpers.print_eta import ETA
@@ -252,7 +252,7 @@ def main():
             # "Real decrease",
         ]
 
-        make_importance_diff(
+        make_importance_general(
             protein, data, probability, labels, outdir="test_importance/full"
         )
 
@@ -269,7 +269,7 @@ def main():
             "Captum relative mutant",
             # "Real decrease",
         ]
-        make_importance_diff(
+        make_importance_general(
             protein,
             data_only_mut,
             probability,
@@ -288,7 +288,7 @@ def main():
             "Mutant",
             "Domain",
         ]
-        make_importance_diff(
+        make_importance_general(
             protein,
             data_only_pred,
             probability,
