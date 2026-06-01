@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from src.training.run_model import ModelRunner
+import matplotlib.ticker as mtick
 
 """
 python -m src.visualization.performacne_all_compare
@@ -304,6 +305,8 @@ ax.grid(
     linestyle="--",
     alpha=0.4,
 )
+
+ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
 
 plt.tight_layout()
 

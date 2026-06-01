@@ -45,6 +45,9 @@ def plot_default(data):
     print(f"Max: {np.max(s)}")
 
     bins = np.logspace(np.log10(s.min()), np.log10(s.max()), 100)
+
+    plt.figure(figsize=(6, 2.5))
+
     plt.hist(s, bins=bins)
     plt.xlabel("Aggregation output")
     plt.xscale("log")
@@ -190,8 +193,8 @@ X = np.memmap(
     shape=(TOTAL_RESIDUES, 1280),
 )
 
-# print("\nploting default")
-# plot_default(X)
+print("\nploting default")
+plot_default(X)
 
 # print("\nploting sum")
 # plot_sum(X)
@@ -205,4 +208,4 @@ X = np.memmap(
 # print("\nploting predictor")
 # plot_predictor(X)
 
-plot_comparison(X)
+# plot_comparison(X)

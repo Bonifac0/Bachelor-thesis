@@ -237,8 +237,8 @@ def main():
         data = np.row_stack(
             [
                 pred_mut,
-                pred_dom,
                 aggrt_mut,
+                pred_dom,
                 aggrt_dom,
                 # real_decrease,
             ]
@@ -246,9 +246,9 @@ def main():
 
         labels = [
             "Predictor mutant",
-            "Predictor domain",
             "Captum relative mutant",
-            "Captum relative domain",
+            "Predictor original",
+            "Captum relative original",
             # "Real decrease",
         ]
 

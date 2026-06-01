@@ -163,9 +163,9 @@ def make_importance_diff(
         fontsize=20,
     )
 
-    colors = ["C1", "C1", "C0", "C0"]
-    hatches = ["", "//", "", "//"]
-    alphas = [1.0, 0.7, 1.0, 0.7]
+    colors = ["C1", "C0", "C1", "C0"]
+    hatches = ["", "", "//", "//"]
+    alphas = [1.0, 1.0, 0.7, 0.7]
 
     for i in range(P):
         offsets = x - total_width / 2 + i * bar_width + bar_width / 2
@@ -209,7 +209,7 @@ def make_importance_diff(
     )
 
     ax.set_title(
-        f"Domain score: {probability[0]:.2f} | "
+        f"Original score: {probability[0]:.2f} | "
         f"Mutant score: {probability[1]:.2f} | "
         f"Region: {global_start}-{global_end}",
         fontsize=16,

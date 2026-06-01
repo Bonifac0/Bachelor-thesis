@@ -43,17 +43,17 @@ def main():
         data = np.row_stack(
             [
                 runner.predictor_inference(mut_attribution),
-                runner.predictor_inference(dom_attribution),
                 aggregate_log_sigmoid(mut_attribution),
+                runner.predictor_inference(dom_attribution),
                 aggregate_log_sigmoid(dom_attribution),
             ]
         )
 
         labels = [
             "Predictor mutant",
-            "Predictor domain",
             "Abs sum mutant",
-            "Abs sum domain",
+            "Predictor original",
+            "Abs sum original",
         ]
 
         make_importance_diff(protein, data, probability, labels)
